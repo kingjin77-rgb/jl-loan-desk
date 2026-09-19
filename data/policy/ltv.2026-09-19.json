@@ -1,0 +1,115 @@
+{
+  "meta": {
+    "id": "ltv",
+    "기준일": "2026-09-19",
+    "출처": "",
+    "출처URL": "",
+    "verified": false,
+    "작성자": "미검수",
+    "비고": "★ 임시 구조값입니다. 아래 ltv 값은 모두 placeholder 이며 실제 규정값이 아닙니다. 금융위원회 가계부채 관리방안 및 은행업감독규정 원문으로 확인한 뒤 값을 교체하고 verified 를 true 로 바꾸십시오. 확인 전에는 화면에 붉은 미검증 경고가 표시됩니다."
+  },
+
+  "_확인필요": [
+    "규제지역(투기과열/조정대상) vs 비규제지역 LTV",
+    "무주택 / 1주택(처분조건 포함) / 다주택 구분별 LTV",
+    "생애최초 우대 LTV 및 금액 상한",
+    "수도권 주택담보대출 금액 절대상한이 현재 유효한지, 유효하다면 얼마인지",
+    "주택가격 구간별 차등(priceTiers)이 금액상한을 대체하는지 병존하는지",
+    "생활안정자금 목적 대출의 별도 한도"
+  ],
+
+  "default": null,
+
+  "rules": [
+    {
+      "id": "투기과열-무주택-생애최초-구입",
+      "when": { "regionGrade": "투기과열", "ownedHouses": 0, "isFirstTime": true, "purpose": "구입" },
+      "ltv": null,
+      "absoluteCap": null,
+      "note": "생애최초 우대 — 값 미확인"
+    },
+    {
+      "id": "투기과열-무주택-구입",
+      "when": { "regionGrade": "투기과열", "ownedHouses": 0, "purpose": "구입" },
+      "ltv": null,
+      "absoluteCap": null,
+      "note": "값 미확인"
+    },
+    {
+      "id": "투기과열-1주택-구입",
+      "when": { "regionGrade": "투기과열", "ownedHouses": 1, "purpose": "구입" },
+      "ltv": null,
+      "note": "기존주택 처분조건 여부에 따라 달라질 수 있음 — 확인 필요"
+    },
+    {
+      "id": "투기과열-다주택-구입",
+      "when": { "regionGrade": "투기과열", "ownedHouses": "다주택", "purpose": "구입" },
+      "ltv": null,
+      "note": "값 미확인"
+    },
+    {
+      "id": "조정대상-무주택-생애최초-구입",
+      "when": { "regionGrade": "조정대상", "ownedHouses": 0, "isFirstTime": true, "purpose": "구입" },
+      "ltv": null,
+      "absoluteCap": null,
+      "note": "값 미확인"
+    },
+    {
+      "id": "조정대상-무주택-구입",
+      "when": { "regionGrade": "조정대상", "ownedHouses": 0, "purpose": "구입" },
+      "ltv": null,
+      "note": "값 미확인"
+    },
+    {
+      "id": "조정대상-1주택-구입",
+      "when": { "regionGrade": "조정대상", "ownedHouses": 1, "purpose": "구입" },
+      "ltv": null,
+      "note": "값 미확인"
+    },
+    {
+      "id": "조정대상-다주택-구입",
+      "when": { "regionGrade": "조정대상", "ownedHouses": "다주택", "purpose": "구입" },
+      "ltv": null,
+      "note": "값 미확인"
+    },
+    {
+      "id": "비규제-무주택-생애최초-구입",
+      "when": { "regionGrade": "비규제", "ownedHouses": 0, "isFirstTime": true, "purpose": "구입" },
+      "ltv": null,
+      "note": "값 미확인"
+    },
+    {
+      "id": "비규제-무주택-구입",
+      "when": { "regionGrade": "비규제", "ownedHouses": 0, "purpose": "구입" },
+      "ltv": null,
+      "note": "값 미확인"
+    },
+    {
+      "id": "비규제-1주택-구입",
+      "when": { "regionGrade": "비규제", "ownedHouses": 1, "purpose": "구입" },
+      "ltv": null,
+      "note": "값 미확인"
+    },
+    {
+      "id": "비규제-다주택-구입",
+      "when": { "regionGrade": "비규제", "ownedHouses": "다주택", "purpose": "구입" },
+      "ltv": null,
+      "note": "값 미확인"
+    },
+    {
+      "id": "생활안정자금-전체",
+      "when": { "purpose": "생활안정" },
+      "ltv": null,
+      "absoluteCap": null,
+      "note": "생활안정자금 목적 — 별도 한도. 값 미확인"
+    },
+    {
+      "id": "전세반환-전체",
+      "when": { "purpose": "전세반환" },
+      "ltv": null,
+      "note": "임차보증금 반환 목적 — 값 미확인"
+    }
+  ],
+
+  "priceTiers": []
+}

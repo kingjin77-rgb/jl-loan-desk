@@ -1,0 +1,18 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # 의존성이 없다. npm install 단계가 필요하지 않다.
+      - name: 계산 엔진 · 데이터 무결성 테스트
+        run: node --test 'test/*.test.js'

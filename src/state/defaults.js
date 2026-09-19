@@ -1,0 +1,95 @@
+/**
+ * 빈 상담의 초기값.
+ *
+ * 규제 수치는 하나도 들어 있지 않다. 여기 있는 것은 "상담사가 보통 이 값에서
+ * 시작한다"는 작업 편의 기본값뿐이다(금리·만기 등). 규제값은 전부 data/policy 에서 온다.
+ */
+
+import { today } from '../core/dates.js';
+
+export function defaultInput() {
+  return {
+    consultation: {
+      consultant: '',
+      clientAlias: '',
+      date: today(),
+      memo: '',
+    },
+
+    borrower: {
+      annualIncome: 0,
+      spouseIncome: 0,
+      combineSpouse: false,
+      ownedHouses: 0,
+      isFirstTime: false,
+      regionGrade: '비규제',
+      stressRegion: '수도권',
+      existingDebts: [],
+    },
+
+    collateral: {
+      basis: '분양가',
+      amount: 0,
+      bangongjeRegion: '그밖의지역',
+      roomCount: 1,
+      mci: false,
+      mcg: false,
+      areaSqm: null,
+    },
+
+    product: {
+      purpose: '구입',
+      lenderTier: '은행권',
+      annualRate: 0.042,
+      rateType: '변동',
+      termMonths: 360,
+      method: '원리금균등',
+      graceMonths: 0,
+      requestedAmount: null,
+      useRequestedForPayment: false,
+      manualCap: null,
+      manualCapNote: '',
+      firstPaymentDate: null,
+      scenarioDeltas: [0, 0.005, 0.01, 0.015],
+    },
+
+    schedule: {
+      enabled: false,
+      complexId: null,
+      complexName: null,
+      typeId: null,
+      floorBand: null,
+      includeExpansion: true,
+      includeOptions: true,
+      salePrice: 0,
+      totalPrice: 0,
+      paymentSchedule: null,
+      conversionDate: null,
+      moveIn: null,
+      jungdogeumRatio: 0.6,
+      jungdogeumRatioCap: 0.6,
+      jungdogeumRate: 0.045,
+      interestMode: '후불제',
+      ownFunds: 0,
+      extras: { 취득세율: null, '중개·법무비추정': 0, 선수관리비: 0, 기타: 0 },
+    },
+  };
+}
+
+export const OPTIONS = {
+  regionGrade: ['투기과열', '조정대상', '비규제'],
+  ownedHouses: [
+    { value: '0', label: '무주택' },
+    { value: '1', label: '1주택' },
+    { value: '다주택', label: '다주택' },
+  ],
+  purpose: ['구입', '생활안정', '전세반환'],
+  lenderTier: ['은행권', '제2금융권'],
+  rateType: ['변동', '혼합', '주기형', '고정'],
+  method: ['원리금균등', '원금균등'],
+  basis: ['분양가', 'KB시세', '감정가'],
+  stressRegion: ['수도권', '비수도권'],
+  interestMode: ['후불제', '이자납부', '무이자'],
+  debtKind: ['신용대출', '마이너스통장', '주택담보대출', '전세자금대출', '기타담보대출'],
+  termYears: [10, 15, 20, 30, 35, 40],
+};

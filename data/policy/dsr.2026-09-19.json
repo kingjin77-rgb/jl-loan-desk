@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "id": "dsr",
+    "기준일": "2026-09-19",
+    "출처": "",
+    "출처URL": "",
+    "verified": false,
+    "작성자": "미검수",
+    "비고": "★ 임시 구조값. limits / dsrMaturityCapMonths 는 반드시 원문 확인 후 교체하십시오. dsrMaturityCapMonths 를 빠뜨리거나 잘못 넣으면 한도가 눈에 띄지 않게 과대계상됩니다."
+  },
+
+  "_확인필요": [
+    "은행권 / 제2금융권 DSR 한도율",
+    "DSR 적용 대상 대출금액 기준선 (이 금액 이하는 미적용)",
+    "DSR 산정만기 상한 — 주택담보대출 / 신용대출 / 기타담보 각각 몇 개월",
+    "DTI 가 현재 적용되는 지역과 비율",
+    "기존부채 종류별 연원리금 산정 규칙 (특히 마이너스통장·할부·리스)"
+  ],
+
+  "limits": {
+    "은행권": null,
+    "제2금융권": null
+  },
+
+  "dtiLimits": {
+    "투기과열": null,
+    "조정대상": null,
+    "비규제": null
+  },
+
+  "dsrMaturityCapMonths": {
+    "주택담보대출": null,
+    "신용대출": null,
+    "기타담보": null
+  },
+
+  "exemptions": [
+    {
+      "id": "중도금",
+      "label": "중도금대출(집단대출)",
+      "threshold": null,
+      "note": "중도금 단계에서는 DSR 미적용. 단 잔금대출 전환 시에는 적용됨 — 이 앱은 잔금 시점을 별도로 계산합니다."
+    },
+    {
+      "id": "소액",
+      "label": "소액 대출",
+      "threshold": null,
+      "note": "기준금액 미확인"
+    }
+  ],
+
+  "existingDebtRules": {
+    "default": { "mode": "amortized", "maturityMonths": null, "note": "산정만기 미확인" },
+    "주택담보대출": { "mode": "amortized", "maturityMonths": null, "note": "실제 잔여만기와 산정만기 상한 중 짧은 쪽" },
+    "신용대출": { "mode": "amortized", "maturityMonths": null, "note": "잔액을 산정만기로 분할 + 이자" },
+    "마이너스통장": { "mode": "limitAmortized", "maturityMonths": null, "note": "사용액이 아니라 한도금액 기준" },
+    "전세자금대출": { "mode": "interestOnly", "note": "원금은 제외, 이자만 반영되는 것이 통례 — 확인 필요" },
+    "기타담보대출": { "mode": "amortized", "maturityMonths": null }
+  }
+}

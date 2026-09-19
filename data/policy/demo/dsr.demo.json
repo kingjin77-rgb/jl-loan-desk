@@ -1,0 +1,21 @@
+{
+  "meta": {
+    "id": "dsr(데모)", "기준일": "2026-09-19", "출처": "없음 — 가상 수치", "출처URL": "",
+    "verified": false, "demo": true, "작성자": "가상 예시",
+    "비고": "⚠ 실제 규정값이 아닙니다. 프로그램 동작 확인 전용의 가상 수치입니다."
+  },
+  "limits": { "은행권": 0.40, "제2금융권": 0.50 },
+  "dtiLimits": { "투기과열": 0.40, "조정대상": 0.50, "비규제": null },
+  "dsrMaturityCapMonths": { "주택담보대출": 360, "신용대출": 120, "기타담보": 120 },
+  "exemptions": [
+    { "id": "중도금", "label": "중도금대출(집단대출)", "threshold": null, "note": "잔금 전환 시 적용" }
+  ],
+  "existingDebtRules": {
+    "default":        { "mode": "amortized",      "maturityMonths": 120 },
+    "주택담보대출":    { "mode": "amortized",      "maturityMonths": 360 },
+    "신용대출":        { "mode": "amortized",      "maturityMonths": 120 },
+    "마이너스통장":    { "mode": "limitAmortized", "maturityMonths": 120 },
+    "전세자금대출":    { "mode": "interestOnly" },
+    "기타담보대출":    { "mode": "amortized",      "maturityMonths": 120 }
+  }
+}

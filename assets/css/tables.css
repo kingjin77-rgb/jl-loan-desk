@@ -1,0 +1,24 @@
+table{width:100%;border-collapse:collapse;font-size:var(--fs-sm);}
+thead th{
+  position:sticky;top:0;z-index:1;
+  background:var(--bg-sunken);text-align:left;font-weight:700;color:var(--ink-sub);
+  padding:var(--s2) var(--s3);border-bottom:1px solid var(--border);white-space:nowrap;
+}
+tbody td{padding:var(--s2) var(--s3);border-bottom:1px solid var(--border);vertical-align:top;}
+tbody tr:last-child td{border-bottom:0;}
+tbody tr:nth-child(even){background:var(--bg-sunken);}
+td.num,th.num{text-align:right;white-space:nowrap;}
+tfoot td{padding:var(--s2) var(--s3);border-top:2px solid var(--border-strong);font-weight:800;background:var(--bg-sunken);}
+
+/* 물린 상한 강조 — 상담사의 눈이 가장 먼저 가야 하는 행 */
+tr.bind td{background:var(--bind-soft) !important;font-weight:700;}
+tr.bind td:first-child{box-shadow:inset 3px 0 0 var(--accent);}
+tr.inapplicable td{color:var(--ink-faint);}
+tr.inapplicable td.num{font-style:italic;}
+
+.table-wrap{max-height:460px;overflow:auto;}
+.table-scroll{overflow-x:auto;}
+
+/* 타임라인 누적 막대 */
+.bar{height:6px;background:var(--bg-alt);border-radius:3px;overflow:hidden;min-width:60px;}
+.bar > span{display:block;height:100%;background:var(--accent);}

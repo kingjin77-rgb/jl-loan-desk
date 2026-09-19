@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+
+  "meta": {
+    "기준일": "YYYY-MM-DD",
+    "출처": "입주자모집공고문(YYYY.M.D) / 변경공고 포함 여부를 적으십시오",
+    "출처URL": "",
+    "작성자": "작성자 이름",
+    "verified": false,
+    "비고": ""
+  },
+
+  "complexId": "영문-소문자-하이픈-아이디",
+  "name": "단지명",
+
+  "location": {
+    "sido": "경기도",
+    "sigungu": "양주시",
+    "address": "전체 주소",
+    "regionGrade": "비규제",
+    "bangongjeRegion": "그밖의지역",
+    "_주의": "regionGrade 는 투기과열 | 조정대상 | 비규제 중 하나. bangongjeRegion 은 policy/bangongje 의 regions[].key 와 글자까지 같아야 합니다."
+  },
+
+  "developer": { "시행사": "", "시공사": "", "신탁사": "" },
+
+  "groupLoanBanks": [
+    {
+      "kind": "중도금",
+      "bank": "",
+      "ratio": 0.6,
+      "rate": { "type": "변동", "annualRate": null, "index": "", "spread": null },
+      "interestMode": "후불제",
+      "note": ""
+    },
+    { "kind": "잔금", "bank": "미정", "rate": { "type": "변동", "annualRate": null }, "note": "입주 전 확정 예정" }
+  ],
+
+  "moveIn": {
+    "예정시기": "YYYY-MM",
+    "입주지정기간": { "start": "YYYY-MM-DD", "end": "YYYY-MM-DD" }
+  },
+
+  "unitTypes": [
+    {
+      "typeId": "84A",
+      "전용면적": 84.97,
+      "공급면적": 112.3,
+      "평형": 34,
+      "세대수": 0,
+      "priceByFloor": [
+        { "floorBand": "기준층", "분양가": 0, "발코니확장": 0, "옵션": 0 },
+        { "floorBand": "저층", "분양가": 0, "발코니확장": 0, "옵션": 0 }
+      ]
+    }
+  ],
+
+  "paymentSchedule": {
+    "계약금": {
+      "ratio": 0.1,
+      "date": "YYYY-MM-DD",
+      "분납": []
+    },
+    "중도금": {
+      "회차수": 6,
+      "ratioPerRound": 0.1,
+      "loanEligible": true,
+      "interestMode": "후불제",
+      "rounds": [
+        { "seq": 1, "ratio": 0.1, "date": "YYYY-MM-DD" },
+        { "seq": 2, "ratio": 0.1, "date": "YYYY-MM-DD" },
+        { "seq": 3, "ratio": 0.1, "date": "YYYY-MM-DD" },
+        { "seq": 4, "ratio": 0.1, "date": "YYYY-MM-DD" },
+        { "seq": 5, "ratio": 0.1, "date": "YYYY-MM-DD" },
+        { "seq": 6, "ratio": 0.1, "date": "YYYY-MM-DD" }
+      ]
+    },
+    "잔금": { "ratio": 0.3, "date": null, "note": "입주지정기간 내 납부" }
+  },
+
+  "extras": {
+    "취득세율": null,
+    "중개·법무비추정": 0,
+    "선수관리비": 0,
+    "기타": 0
+  },
+
+  "분양전환": null
+}

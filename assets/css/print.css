@@ -1,0 +1,27 @@
+/* 인쇄 = 상담기록서. 화면과 다른 문서다. */
+@media print{
+  @page{size:A4;margin:14mm 12mm;}
+  body{background:#fff;font-size:10pt;}
+  .topbar .tools,.rail,.no-print,button,dialog{display:none !important;}
+  .app{display:block;}
+  .main{display:block;padding:0;}
+  .summary{position:static;box-shadow:none;border-bottom:2px solid #000;padding:0 0 6mm;}
+  .summary .cell .v{font-size:16pt;}
+  .summary .cell.headline .v{font-size:20pt;}
+  .panel{border:0;border-top:1px solid #999;border-radius:0;break-inside:avoid;margin-top:5mm;}
+  .panel > header{background:none;border-bottom:0;padding:0 0 2mm;}
+  .panel > .body{padding:0;}
+  .table-wrap{max-height:none;overflow:visible;}
+  thead{display:table-header-group;}
+  tr{break-inside:avoid;}
+  tbody tr:nth-child(even){background:#F5F5F5;}
+  tr.bind td{background:#E8F1F5 !important;}
+  /* 상환스케줄은 기본적으로 연 단위만. 전체 회차는 360행 = 12장이 된다. */
+  .print-monthly-schedule{display:none;}
+  body.print-full .print-monthly-schedule{display:block;}
+  .print-only{display:block !important;}
+  .callout{border-left-width:2px;}
+  a[href]::after{content:"";}
+  .print-footer{display:block !important;margin-top:6mm;padding-top:3mm;border-top:1px solid #999;font-size:8pt;color:#444;}
+}
+.print-only,.print-footer{display:none;}

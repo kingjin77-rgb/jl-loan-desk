@@ -1,0 +1,51 @@
+/* 앱 셸 — 상단 요약 고정 / 좌 입력 레일 / 우 결과. 랜딩페이지가 아니라 업무 도구다. */
+.app{display:flex;flex-direction:column;min-height:100vh;}
+
+/* ── 상단 바 */
+.topbar{
+  background:var(--bg);border-bottom:1px solid var(--border);
+  padding:var(--s2) var(--s4);display:flex;align-items:center;gap:var(--s4);flex-wrap:wrap;
+}
+.topbar .brand{display:flex;align-items:center;gap:var(--s2);font-weight:800;font-size:var(--fs-md);}
+.topbar .brand .dot{width:8px;height:8px;border-radius:2px;background:var(--accent);}
+.topbar .brand .sub{font-weight:500;color:var(--ink-faint);font-size:var(--fs-xs);}
+.topbar .spacer{flex:1;}
+.topbar .tools{display:flex;gap:var(--s2);flex-wrap:wrap;}
+
+/* ── 경고 배너 */
+.banner{padding:var(--s2) var(--s4);font-size:var(--fs-sm);border-bottom:1px solid transparent;}
+.banner.danger{background:var(--danger-soft);border-bottom-color:#F0C4C0;color:#7A1A15;}
+.banner.warn{background:var(--warn-soft);border-bottom-color:#EBD6AE;color:#6B4400;}
+.banner.info{background:var(--accent-soft);border-bottom-color:var(--accent-line);color:#0D3A4D;}
+.banner b{font-weight:800;}
+.banner .detail-toggle{margin-left:var(--s2);text-decoration:underline;background:none;border:0;color:inherit;font-size:inherit;padding:0;}
+.banner ul{margin:var(--s2) 0 0 var(--s4);}
+
+/* ── 요약 스트립 (항상 보인다) */
+.summary{
+  position:sticky;top:0;z-index:20;
+  background:var(--bg);border-bottom:2px solid var(--accent);
+  padding:var(--s3) var(--s4);
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--s4);
+  box-shadow:var(--shadow-sm);
+}
+.summary .cell .k{font-size:var(--fs-xs);color:var(--ink-faint);font-weight:600;margin-bottom:2px;}
+.summary .cell .v{font-size:var(--fs-num);font-weight:800;letter-spacing:-.03em;}
+.summary .cell .v.accent{color:var(--accent);}
+.summary .cell .v.danger{color:var(--danger);}
+.summary .cell .v.ok{color:var(--ok);}
+.summary .cell .note{font-size:var(--fs-xs);color:var(--ink-sub);margin-top:2px;}
+.summary .cell.headline{grid-column:1/-1;}
+.summary .cell.headline .v{font-size:var(--fs-hero);}
+
+/* ── 본문 2단 */
+.main{flex:1;display:grid;grid-template-columns:var(--rail-w) 1fr;gap:var(--s4);padding:var(--s4);align-items:start;}
+.rail{display:flex;flex-direction:column;gap:var(--s3);position:sticky;top:96px;max-height:calc(100vh - 112px);overflow-y:auto;padding-right:var(--s1);}
+.results{display:flex;flex-direction:column;gap:var(--s3);min-width:0;}
+
+@media (max-width:1100px){
+  .main{grid-template-columns:1fr;}
+  .rail{position:static;max-height:none;overflow:visible;}
+}
+
+footer.foot{padding:var(--s5) var(--s4);color:var(--ink-faint);font-size:var(--fs-xs);border-top:1px solid var(--border);background:var(--bg);}

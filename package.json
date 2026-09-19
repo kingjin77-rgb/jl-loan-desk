@@ -1,0 +1,11 @@
+{
+  "name": "jl-loan-desk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "JL 대출데스크 — 법무법인 제이엘 상담사용 대출상담 프로그램",
+  "scripts": {
+    "test": "node --test 'test/*.test.js'",
+    "serve": "npx --yes serve ."
+  }
+}

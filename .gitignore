@@ -1,0 +1,10 @@
+node_modules/
+.DS_Store
+*.log
+
+# 실제 단지 데이터는 커밋하지 않는다 (이 저장소는 공개).
+# 가상 샘플과 템플릿만 남긴다.
+data/complexes/*.json
+!data/complexes/_index.json
+!data/complexes/_template.json
+!data/complexes/sample-danji.json

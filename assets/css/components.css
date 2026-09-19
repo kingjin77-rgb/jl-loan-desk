@@ -1,0 +1,94 @@
+/* ── 패널 */
+.panel{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-md);}
+.panel > header{
+  display:flex;align-items:center;gap:var(--s2);
+  padding:var(--s2) var(--s3);border-bottom:1px solid var(--border);background:var(--bg-sunken);
+  border-radius:var(--radius-md) var(--radius-md) 0 0;
+}
+.panel > header h2{font-size:var(--fs-md);font-weight:700;}
+.panel > header .spacer{flex:1;}
+.panel > .body{padding:var(--s3);}
+.panel.flush > .body{padding:0;}
+
+/* ── 입력 필드 */
+.field{display:grid;grid-template-columns:110px 1fr;align-items:center;gap:var(--s2);margin-bottom:var(--s2);}
+.field > label{font-size:var(--fs-sm);color:var(--ink-sub);font-weight:600;}
+.field .control{display:flex;align-items:center;gap:var(--s1);min-width:0;}
+.field input,.field select{
+  width:100%;height:var(--row-h);padding:0 var(--s2);
+  border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);
+}
+.field input:focus,.field select:focus{border-color:var(--accent);}
+.field input.num{text-align:right;}
+.field .unit{font-size:var(--fs-sm);color:var(--ink-faint);white-space:nowrap;}
+.field .hint{grid-column:2;font-size:var(--fs-xs);color:var(--ink-faint);margin-top:-2px;}
+.field.err input,.field.err select{border-color:var(--danger);background:var(--danger-soft);}
+.field-wide{grid-template-columns:1fr;}
+
+/* 체크박스 묶음 */
+.checks{display:flex;flex-wrap:wrap;gap:var(--s3);}
+.checks label{display:flex;align-items:center;gap:var(--s1);font-size:var(--fs-sm);cursor:pointer;}
+
+/* 세그먼트 토글 */
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;}
+.seg button{
+  border:0;background:var(--bg);padding:0 var(--s3);height:calc(var(--row-h) - 2px);
+  font-size:var(--fs-sm);color:var(--ink-sub);border-right:1px solid var(--border);
+}
+.seg button:last-child{border-right:0;}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff;font-weight:700;}
+
+/* ── 버튼 */
+.btn{
+  height:var(--row-h);padding:0 var(--s3);border-radius:var(--radius-sm);
+  border:1px solid var(--border);background:var(--bg);color:var(--ink-strong);
+  font-size:var(--fs-sm);font-weight:600;display:inline-flex;align-items:center;gap:var(--s1);
+}
+.btn:hover{background:var(--bg-sunken);}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn.primary:hover{background:var(--accent-hover);}
+.btn.danger{color:var(--danger);border-color:#E7BDB9;}
+.btn.danger:hover{background:var(--danger-soft);}
+.btn.sm{height:24px;padding:0 var(--s2);font-size:var(--fs-xs);}
+
+/* ── 칩·배지 */
+.chip{
+  display:inline-flex;align-items:center;gap:3px;
+  font-size:var(--fs-xs);font-weight:700;padding:1px var(--s2);border-radius:999px;
+  background:var(--bg-alt);color:var(--ink-sub);
+}
+.chip.edited{background:var(--warn-soft);color:var(--warn);}
+.chip.auto{background:var(--accent-soft);color:var(--accent);}
+.chip.bind{background:var(--bind);color:#fff;}
+.chip.demo{background:var(--danger);color:#fff;}
+
+/* ── 콜아웃 */
+.callout{border-left:3px solid var(--border);padding:var(--s2) var(--s3);background:var(--bg-sunken);font-size:var(--fs-sm);border-radius:0 var(--radius-sm) var(--radius-sm) 0;}
+.callout + .callout{margin-top:var(--s2);}
+.callout.bind{border-left-color:var(--accent);background:var(--bind-soft);}
+.callout.warn{border-left-color:var(--warn);background:var(--warn-soft);}
+.callout.danger{border-left-color:var(--danger);background:var(--danger-soft);}
+.callout.ok{border-left-color:var(--ok);background:var(--ok-soft);}
+.callout b{font-weight:800;}
+
+/* 상담사가 읽는 문장 블록 */
+.script{font-size:var(--fs-md);line-height:1.7;}
+.script p{margin-bottom:var(--s2);}
+.script p:last-child{margin-bottom:0;}
+
+/* 개선 레버 */
+.levers{list-style:none;display:flex;flex-direction:column;gap:var(--s1);}
+.levers li{display:flex;align-items:baseline;gap:var(--s2);padding:var(--s2);background:var(--ok-soft);border-radius:var(--radius-sm);font-size:var(--fs-sm);}
+.levers .delta{font-weight:800;color:var(--ok);white-space:nowrap;}
+
+/* 동적 목록(기존부채 등) */
+.rows{display:flex;flex-direction:column;gap:var(--s1);}
+.row-item{display:grid;grid-template-columns:1fr 1fr 70px 28px;gap:var(--s1);align-items:center;}
+.row-item input,.row-item select{height:26px;padding:0 var(--s1);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:var(--fs-sm);}
+.row-item .x{border:0;background:none;color:var(--ink-faint);font-size:15px;line-height:1;}
+.row-item .x:hover{color:var(--danger);}
+
+dialog{border:0;border-radius:var(--radius-lg);padding:0;box-shadow:var(--shadow-md);max-width:min(720px,92vw);}
+dialog::backdrop{background:rgba(0,0,0,.35);}
+dialog .body{padding:var(--s5);max-height:70vh;overflow:auto;}
+dialog footer{padding:var(--s3) var(--s5);border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:var(--s2);}

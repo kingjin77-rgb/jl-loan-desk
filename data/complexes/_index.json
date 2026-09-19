@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "기준일": "2026-09-19",
+    "verified": false,
+    "비고": "저장소에는 가상 샘플 단지 1건만 둡니다. 실제 단지 데이터는 커밋하지 말고 화면의 '단지 불러오기'로 JSON 파일을 열어 쓰십시오 (이 저장소는 공개 저장소입니다)."
+  },
+  "complexes": [
+    {
+      "complexId": "sample-danji",
+      "name": "○○ 샘플아파트 (가상 단지)",
+      "file": "complexes/sample-danji.json",
+      "sigungu": "경기도 ○○시",
+      "입주예정": "2028-06",
+      "demo": true
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "id": "ltv(데모)",
+    "기준일": "2026-09-19",
+    "출처": "없음 — 가상 수치",
+    "출처URL": "",
+    "verified": false,
+    "demo": true,
+    "작성자": "가상 예시",
+    "비고": "⚠ 실제 규정값이 아닙니다. 프로그램 동작 확인 전용의 가상 수치입니다. 실제 상담에 사용하지 마십시오. 값은 설명을 위해 일부러 단순한 숫자로 잡았습니다."
+  },
+  "default": null,
+  "rules": [
+    { "id": "투기과열-무주택-생애최초-구입", "when": { "regionGrade": "투기과열", "ownedHouses": 0, "isFirstTime": true, "purpose": "구입" }, "ltv": 0.50, "note": "가상 수치" },
+    { "id": "투기과열-무주택-구입",         "when": { "regionGrade": "투기과열", "ownedHouses": 0, "purpose": "구입" }, "ltv": 0.40, "note": "가상 수치" },
+    { "id": "투기과열-1주택-구입",           "when": { "regionGrade": "투기과열", "ownedHouses": 1, "purpose": "구입" }, "ltv": 0.30, "note": "가상 수치" },
+    { "id": "투기과열-다주택-구입",         "when": { "regionGrade": "투기과열", "ownedHouses": "다주택", "purpose": "구입" }, "ltv": 0.00, "note": "가상 수치" },
+    { "id": "조정대상-무주택-생애최초-구입", "when": { "regionGrade": "조정대상", "ownedHouses": 0, "isFirstTime": true, "purpose": "구입" }, "ltv": 0.60, "note": "가상 수치" },
+    { "id": "조정대상-무주택-구입",         "when": { "regionGrade": "조정대상", "ownedHouses": 0, "purpose": "구입" }, "ltv": 0.50, "note": "가상 수치" },
+    { "id": "조정대상-1주택-구입",           "when": { "regionGrade": "조정대상", "ownedHouses": 1, "purpose": "구입" }, "ltv": 0.40, "note": "가상 수치" },
+    { "id": "조정대상-다주택-구입",         "when": { "regionGrade": "조정대상", "ownedHouses": "다주택", "purpose": "구입" }, "ltv": 0.00, "note": "가상 수치" },
+    { "id": "비규제-무주택-생애최초-구입",   "when": { "regionGrade": "비규제", "ownedHouses": 0, "isFirstTime": true, "purpose": "구입" }, "ltv": 0.80, "note": "가상 수치" },
+    { "id": "비규제-무주택-구입",           "when": { "regionGrade": "비규제", "ownedHouses": 0, "purpose": "구입" }, "ltv": 0.70, "note": "가상 수치" },
+    { "id": "비규제-1주택-구입",             "when": { "regionGrade": "비규제", "ownedHouses": 1, "purpose": "구입" }, "ltv": 0.60, "note": "가상 수치" },
+    { "id": "비규제-다주택-구입",           "when": { "regionGrade": "비규제", "ownedHouses": "다주택", "purpose": "구입" }, "ltv": 0.40, "note": "가상 수치" },
+    { "id": "생활안정자금-전체",             "when": { "purpose": "생활안정" }, "ltv": 0.40, "absoluteCap": 200000000, "note": "가상 수치" },
+    { "id": "전세반환-전체",                 "when": { "purpose": "전세반환" }, "ltv": 0.50, "note": "가상 수치" }
+  ],
+  "priceTiers": []
+}
