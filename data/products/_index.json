@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "id": "products-index",
+    "기준일": "2026-09-19",
+    "출처": "",
+    "verified": false,
+    "비고": "★ 3단계(정책자금 총망라) 자리입니다. 아직 비어 있으며 화면에서 사용하지 않습니다. 구조만 미리 정해 두어, 상품을 추가할 때 코드를 고치지 않아도 되게 했습니다."
+  },
+
+  "_설명": [
+    "상품을 추가하려면 이 폴더에 <상품>.YYYY-MM-DD.json 을 만들고 아래 products 배열에 등록합니다.",
+    "자격요건(eligibility)은 코드가 아니라 JSON 규칙으로 기술하며 src/core/eligibility.js 가 해석합니다.",
+    "지원 예정 연산자: and / or / not / lte / gte / eq / in / between"
+  ],
+
+  "_예정": [
+    { "productId": "didimdol",         "name": "디딤돌대출",        "category": "기금", "variants": ["일반", "생애최초", "신혼부부", "신생아 특례"] },
+    { "productId": "bogeumjari",       "name": "보금자리론",        "category": "주금공", "variants": ["일반", "우대형"] },
+    { "productId": "beotimmok",        "name": "버팀목 전세자금",   "category": "기금", "variants": ["일반", "청년", "신혼", "신생아"] },
+    { "productId": "general-mortgage", "name": "일반 아파트 주담대", "category": "은행권" },
+    { "productId": "jungdogeum-group", "name": "집단대출(중도금/잔금)", "category": "은행권" },
+    { "productId": "bunyang-conversion", "name": "분양전환(민간임대)", "category": "기타" }
+  ],
+
+  "products": []
+}
