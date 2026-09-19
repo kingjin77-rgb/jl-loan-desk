@@ -8,6 +8,7 @@
 import { el, panel, table, replace } from './dom.js';
 import { formatKRW, formatPct, formatNumber } from '../core/money.js';
 import { formatKo } from '../core/dates.js';
+import { limitChart, dsrChart, fundsChart, timelineChart, scenarioChart } from './charts.js';
 
 // ───────────────────────── 상단 요약 ─────────────────────────
 
@@ -96,6 +97,9 @@ export function limitPanel(r) {
   });
 
   const body = [
+    // 도식이 먼저, 표가 그다음. 표는 그대로 남는다 — 도식이 표를 대체하지 않는다.
+    limitChart(r),
+    dsrChart(r),
     el('div.table-scroll', {}, [t]),
     el('div.callout', { style: 'margin-top:12px' }, [
       el('div', {}, [
@@ -123,13 +127,14 @@ export function limitPanel(r) {
     el('div.tiny.faint', { text: '이 금리는 한도 산정에만 쓰입니다. 실제 내시는 이자는 약정금리 기준입니다.' }),
   ]));
 
-  return panel('한도 산출 내역', body, { id: 'result-limit' });
+  return panel('한도 산출 내역', body.filter(Boolean), { id: 'result-limit' });
 }
 
 // ───────────────────────── 금리 시나리오 ─────────────────────────
 
 export function scenarioPanel(r) {
   return panel('금리 시나리오', [
+    scenarioChart(r),
     table([
       { key: 'label', label: '시나리오' },
       { key: 'rate', label: '금리', num: true, render: (s) => formatPct(s.rate) },
@@ -137,8 +142,7 @@ export function scenarioPanel(r) {
       { key: 'deltaMonthly', label: '증가', num: true, render: (s) => (s.deltaMonthly ? `+${formatKRW(s.deltaMonthly)}` : '—') },
       { key: 'totalInterest', label: '총 이자', num: true, render: (s) => formatKRW(s.totalInterest) },
     ], r.scenarios, { rowClass: (s) => (s.label === '기준' ? 'bind' : '') }),
-    el('p.tiny.faint', { text: '대출금액은 고정하고 금리만 바꾼 비교입니다.', style: 'margin-top:8px' }),
-  ], { id: 'result-scenarios' });
+  ].filter(Boolean), { id: 'result-scenarios' });
 }
 
 // ───────────────────────── 상환 스케줄 ─────────────────────────
@@ -188,6 +192,7 @@ export function timelinePanel(r) {
   }));
 
   return panel('납부 타임라인', [
+    timelineChart(r),
     el('div.table-scroll', {}, [table([
       { key: 'kind', label: '구분', render: (e) => `${e.kind}${e.round ? ` ${e.round}회` : ''}` },
       { key: 'date', label: '일자', render: (e) => el('span.small', { text: e.date ?? '-' }) },
@@ -222,6 +227,7 @@ export function fundsPanel(r) {
     el('div.callout', { class: g.shortfall > 0 ? 'danger' : 'ok' }, [
       el('div.script', {}, [el('p', {}, [el('b', { text: g.headline })])]),
     ]),
+    fundsChart(r),
     table([
       { key: 'group', label: '구분' },
       { key: 'label', label: '항목' },

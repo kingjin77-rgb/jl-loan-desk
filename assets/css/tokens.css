@@ -43,3 +43,55 @@
   --shadow-sm:0 1px 2px rgba(0,0,0,.06);
   --shadow-md:0 4px 14px rgba(0,0,0,.08);
 }
+
+/* ── 도식(인포그래픽) 색 ──────────────────────────────────────────────
+   scripts/validate_palette.js 로 흰 배경(#FFFFFF) 기준 검증한 값이다.
+   5분류 인접쌍: CVD ΔE 9.1 / 정상시야 ΔE 19.6 통과.
+   일부 색이 3:1 미만이라 **모든 구간에 직접 라벨과 표를 함께 둔다**(relief 규칙).
+   색만으로 의미를 전달하는 곳은 없다 — 라벨·아이콘이 항상 함께 간다. */
+:root{
+  --viz-surface:#FFFFFF;
+  --viz-grid:#ECECEA;        /* 눈금선 — 물러나 있어야 한다 */
+  --viz-axis:#C3C2B7;
+  --viz-ink:#111417;
+  --viz-ink-sub:#52514E;
+  --viz-ink-muted:#898781;
+
+  /* 한도 막대: 하나의 측정값 + 물린 항목만 강조 (순서형 2단계) */
+  --viz-bar:#7FB0C6;         /* 흰 배경 대비 2.35 — 순서형 하한 2:1 충족 */
+  --viz-bar-bind:#156082;    /* 대비 6.94 */
+
+  /* 자금 구성 5분류 (고정 순서, 절대 순환시키지 않는다) */
+  --viz-c1:#2A78D6;  /* 잔금 */
+  --viz-c2:#EB6834;  /* 중도금대출 상환 */
+  --viz-c3:#1BAF7A;  /* 후불이자 */
+  --viz-c4:#EDA100;  /* 취득세 */
+  --viz-c5:#E87BA4;  /* 부대비용 */
+
+  /* 상태 — 계열색으로 절대 재사용하지 않는다. 항상 아이콘·라벨과 함께. */
+  --viz-good:#0CA30C;
+  --viz-critical:#D03B3B;
+  --viz-neutral:#D9D9D9;
+}
+
+/* ── 어두운 화면 ──────────────────────────────────────────────────── */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --accent:#4E9DBE; --accent-hover:#6BB2CE; --accent-soft:#12303D; --accent-line:#2B5A70;
+    --ink:#FFFFFF; --ink-strong:#F4F4F2; --ink-sub:#C3C2B7; --ink-faint:#898781;
+    --bg:#1A1A19; --bg-alt:#111110; --bg-sunken:#232322;
+    --border:#383835; --border-strong:#4A4A46;
+    --ok:#4ADE80; --ok-soft:#14301F; --warn:#FBBF24; --warn-soft:#332611;
+    --danger:#F87171; --danger-soft:#3A1917;
+    --bind:#4E9DBE; --bind-soft:#12303D;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.5); --shadow-md:0 4px 14px rgba(0,0,0,.6);
+
+    /* 도식 — 어두운 표면(#1A1A19)에 맞춰 각 단계를 다시 고른 값이다.
+       밝은 값을 그대로 뒤집은 것이 아니다. */
+    --viz-surface:#1A1A19; --viz-grid:#2C2C2A; --viz-axis:#383835;
+    --viz-ink:#FFFFFF; --viz-ink-sub:#C3C2B7; --viz-ink-muted:#898781;
+    --viz-bar:#37718B; --viz-bar-bind:#6BB2CE;
+    --viz-c1:#3987E5; --viz-c2:#D95926; --viz-c3:#199E70; --viz-c4:#C98500; --viz-c5:#D55181;
+    --viz-good:#0CA30C; --viz-critical:#E66767; --viz-neutral:#3A3A37;
+  }
+}

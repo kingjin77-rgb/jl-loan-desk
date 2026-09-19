@@ -1,0 +1,39 @@
+/* ── 도식 ───────────────────────────────────────────────────────── */
+.viz{margin:0 0 var(--s2);}
+.viz svg{display:block;width:100%;height:auto;overflow:visible;}
+.viz figcaption{
+  font-size:var(--fs-xs);color:var(--ink-faint);
+  margin-top:var(--s2);padding-top:var(--s2);border-top:1px solid var(--border);
+}
+.viz rect,.viz circle{transition:opacity .12s ease;}
+.viz rect:hover,.viz circle:hover,
+.viz rect:focus-visible,.viz circle:focus-visible{opacity:.82;outline:none;}
+
+/* 범례 — 2계열 이상이면 항상 있다 */
+.viz-legend{display:flex;flex-wrap:wrap;gap:var(--s2) var(--s4);margin-top:var(--s3);}
+.viz-key{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--ink-sub);}
+.viz-key i{width:10px;height:10px;border-radius:3px;flex:none;}
+.viz-key i.ring{background:var(--bg);border:2px solid var(--viz-bar-bind);}
+
+/* 툴팁 */
+.viz-tip{
+  position:fixed;top:0;left:0;z-index:100;pointer-events:none;
+  max-width:300px;padding:var(--s2) var(--s3);
+  background:var(--ink-strong);color:#fff;border-radius:var(--radius-sm);
+  font-size:var(--fs-xs);line-height:1.5;box-shadow:var(--shadow-md);
+  opacity:0;transition:opacity .1s ease;
+}
+.viz-tip.on{opacity:1;}
+.viz-tip b{font-weight:800;}
+.viz-tip .sub{color:rgba(255,255,255,.7);}
+
+/* 표 ↔ 도식 전환 — 도식이 표를 대체하지 않는다 */
+.viz-toggle{display:inline-flex;}
+
+@media print{
+  .viz-tip{display:none;}
+  .viz figcaption{color:#444;}
+}
+
+/* 종이에서는 "마우스를 올리면…" 같은 안내가 의미 없다 */
+@media print{ .viz-note{display:none;} }

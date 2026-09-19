@@ -6,6 +6,7 @@
  */
 
 import { formatKRW, formatPct } from './money.js';
+import { josa } from './hangul.js';
 
 /**
  * @param {object} limitResult  computeLimit 결과
@@ -39,9 +40,9 @@ export function buildNarrative(limitResult, extra = {}) {
   if (runnerUp && Number.isFinite(slack)) {
     slackLine =
       `다음으로 낮은 상한은 ${runnerUp.label} ${formatKRW(runnerUp.amount)}입니다. ` +
-      `${binding.label} 쪽 제약만 풀리면 ${formatKRW(slack)}까지 더 늘어날 수 있습니다.`;
+      `${josa(binding.label, '이/가')} 풀리면 ${formatKRW(slack)}까지 더 늘어날 수 있습니다.`;
   } else if (!runnerUp) {
-    slackLine = `다른 상한은 이 건에 적용되지 않아 ${binding.label}이 단독으로 한도를 결정합니다.`;
+    slackLine = `다른 상한은 이 건에 적용되지 않아 ${josa(binding.label, '이/가')} 단독으로 한도를 결정합니다.`;
   }
 
   // 희망 금액 대비

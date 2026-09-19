@@ -9,8 +9,19 @@
 import { el, field, segmented, select } from './dom.js';
 import { parseKRW, parsePct, formatNumber, formatKRW } from '../core/money.js';
 
-/** 금액 입력. 값은 원 단위 숫자로 store 에 들어간다. */
+/**
+ * 금액 입력. 값은 원 단위 숫자로 store 에 들어간다.
+ *
+ * 상담 속도가 걸린 자리다:
+ * - "3억8천", "38,000만", "380000000" 을 전부 받는다 (parseKRW)
+ * - ↑/↓ 로 1,000만원씩, Shift+↑/↓ 로 1억씩 올리고 내린다 — 고객 앞에서 숫자를
+ *   지웠다 다시 치는 대신 바로 조정할 수 있어야 한다
+ * - 입력한 값을 바로 아래에 한국어로 되읽어 준다(자릿수 오타를 그 자리에서 잡는다)
+ */
 export function moneyField(label, value, onChange, opts = {}) {
+  const STEP = opts.step ?? 10_000_000;        // ↑/↓ 1,000만원
+  const BIG_STEP = opts.bigStep ?? 100_000_000; // Shift+↑/↓ 1억
+
   const input = el('input.num', {
     type: 'text',
     inputmode: 'numeric',
@@ -22,19 +33,45 @@ export function moneyField(label, value, onChange, opts = {}) {
       e.target.value = v ? formatNumber(v) : '';
       if (opts.onBlurRender) opts.onBlurRender();
     },
+    onKeyDown: (e) => {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      e.preventDefault();
+      const step = e.shiftKey ? BIG_STEP : STEP;
+      const cur = parseKRW(e.target.value);
+      const next = Math.max(0, cur + (e.key === 'ArrowUp' ? step : -step));
+      e.target.value = next ? formatNumber(next) : '';
+      onChange(next);
+    },
   });
+
+  // 되읽기 — 자릿수를 잘못 친 것을 눈으로 바로 잡는다
   const hint = value > 0 ? formatKRW(value) : opts.hint ?? null;
   return field(label, input, { ...opts, unit: opts.unit ?? '원', hint });
 }
 
-/** 퍼센트 입력. 값은 비율(0.042)로 store 에 들어간다. */
+/**
+ * 퍼센트 입력. 값은 비율(0.042)로 store 에 들어간다.
+ * ↑/↓ 로 0.1%p, Shift+↑/↓ 로 0.5%p — 금리를 흔들어 보는 것이 상담의 절반이다.
+ */
 export function pctField(label, ratio, onChange, opts = {}) {
+  const STEP = opts.step ?? 0.001;
+  const BIG_STEP = opts.bigStep ?? 0.005;
+
   const input = el('input.num', {
     type: 'text',
     inputmode: 'decimal',
     value: ratio != null ? (ratio * 100).toFixed(opts.digits ?? 3).replace(/\.?0+$/, '') : '',
     placeholder: opts.placeholder ?? '0',
     onInput: (e) => onChange(parsePct(e.target.value)),
+    onKeyDown: (e) => {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      e.preventDefault();
+      const step = e.shiftKey ? BIG_STEP : STEP;
+      const cur = parsePct(e.target.value);
+      const next = Math.max(0, Math.round((cur + (e.key === 'ArrowUp' ? step : -step)) * 1e6) / 1e6);
+      e.target.value = (next * 100).toFixed(opts.digits ?? 3).replace(/\.?0+$/, '');
+      onChange(next);
+    },
   });
   return field(label, input, { ...opts, unit: opts.unit ?? '%' });
 }
