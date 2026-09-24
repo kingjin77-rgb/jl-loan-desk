@@ -106,16 +106,19 @@ if (isNode) {
     assert.ok(t.location.bangongjeRegion, '템플릿에 bangongjeRegion 예시가 있어야 합니다');
   });
 
-  test('공개 저장소 안전장치: 커밋된 단지는 가상 샘플뿐이다', () => {
-    // 이 저장소는 public 이다. 실제 단지의 분양가·취급은행이 커밋되면 그대로 공개된다.
-    // 실제 단지 데이터는 화면의 "파일 열기"로 쓰고, 저장소에는 넣지 않는다.
+  test('노출 방지: 커밋된 단지는 가상 샘플뿐이다', () => {
+    // 저장소는 비공개지만 배포된 사이트는 주소를 아는 사람이면 열 수 있고,
+    // 커밋한 단지 JSON 은 사이트에서 그대로 내려받을 수 있다. 실제 단지의
+    // 분양가·취급은행이 노출되지 않도록, 저장소에는 가상 샘플만 둔다.
+    // 실제 단지 데이터는 화면의 "파일 열기"로 쓴다.
     const index = read('complexes/_index.json');
     for (const entry of index.complexes) {
       const doc = read(entry.file);
       assert.ok(
         doc.meta?.demo === true,
         `${entry.file}: 저장소에는 meta.demo:true 인 가상 단지만 커밋할 수 있습니다. ` +
-        `실제 단지 데이터는 커밋하지 말고 화면의 "파일 열기"로 불러오십시오.`
+        `실제 단지 데이터는 커밋하지 말고 화면의 "파일 열기"로 불러오십시오 ` +
+        `(커밋하면 배포된 사이트에서 그대로 내려받을 수 있게 됩니다).`
       );
     }
   });
