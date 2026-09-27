@@ -191,6 +191,9 @@ function render() {
     hasErrors ? null : summaryStrip(result),
     el('div.main', {}, [
       el('div.rail', {}, [
+        borrowerPanel({ store, errors: result.errors, autoValues }),
+        collateralPanel({ store, ctx, errors: result.errors, autoValues }),
+        productPanel({ store }),
         complexPanel({
           store, ctx,
           mine: myComplexes,
@@ -203,9 +206,6 @@ function render() {
           onTypeChange: changeType,
           onConversionPreset: (d) => store.set('schedule.conversionDate', d),
         }),
-        borrowerPanel({ store, errors: result.errors, autoValues }),
-        collateralPanel({ store, ctx, errors: result.errors, autoValues }),
-        productPanel({ store }),
         eligibilityPanel({
           store,
           open: ui.eligibilityOpen,

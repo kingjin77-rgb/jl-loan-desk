@@ -58,6 +58,9 @@ export function summaryStrip(r) {
 
 export function scriptPanel(r) {
   const n = r.narrative;
+  // 단지를 안 넣었을 때 "이 앱은 단지 전용인가?" 하는 오해가 생긴다.
+  // 지금 결과가 온전하다는 것과, 단지를 넣으면 무엇이 더 나오는지 한 줄로 밝힌다.
+  const noComplex = !r.janggeum;
   const body = [
     el('div.callout.bind', {}, [el('div.script', {}, [
       el('p', {}, [el('b', { text: n.bindingLine })]),
@@ -78,6 +81,12 @@ export function scriptPanel(r) {
       ]),
     ]))));
     body.push(el('p.tiny.faint', { text: '위 금액은 각 조건을 실제로 바꿔 다시 계산한 결과입니다.', style: 'margin-top:6px' }));
+  }
+
+  if (noComplex) {
+    body.push(el('p.tiny.faint', { style: 'margin-top:10px', text:
+      '분양 단지 상담이라면 「단지」를 추가하면 중도금 후불이자와 입주 시 필요자금까지 계산됩니다. ' +
+      '기존 주택 매매·전세라면 이대로 쓰시면 됩니다.' }));
   }
 
   return panel('상담 스크립트', body, { id: 'result-script' });

@@ -73,11 +73,18 @@ export function complexPanel({ store, ctx, mine, onPickComplex, onImportComplex,
   const body = [picker, actionsRow];
 
   if (!s.enabled) {
-    body.push(el('p.tiny.faint', { text:
+    body.push(el('div.callout', { style: 'margin-top:6px' }, [
+      el('div.small', {}, [el('b', { text: '단지는 선택입니다.' })]),
+      el('div.tiny.muted', { style: 'margin-top:2px', text:
+        '지금도 한도·월 상환액·정책자금 비교는 다 계산됩니다. ' +
+        '분양 단지 상담이라면 단지를 넣으십시오 — 중도금 회차별 후불이자와 ' +
+        '「입주 때 현금이 얼마나 더 필요한지」가 추가로 나옵니다.' }),
       (mine ?? []).length
-        ? '단지를 고르면 분양가·중도금 회차·입주지정기간이 자동으로 채워지고, 입주 시 부족자금까지 계산됩니다.'
-        : '아직 만든 단지가 없습니다. 「단지 만들기」를 눌러 입주자모집공고를 보며 입력하십시오. 이 기기에만 저장되고 인터넷에 올라가지 않습니다.' }));
-    return panel('단지', body, { id: 'panel-complex', collapsible, collapsed, onToggle });
+        ? null
+        : el('div.tiny.faint', { style: 'margin-top:4px', text:
+            '입주자모집공고를 보며 5분이면 입력합니다. 이 기기에만 저장되고 인터넷에 올라가지 않습니다.' }),
+    ].filter(Boolean)));
+    return panel('단지 (선택)', body, { id: 'panel-complex', collapsible, collapsed, onToggle });
   }
 
   const types = ctx.complexDoc?.unitTypes ?? [];
