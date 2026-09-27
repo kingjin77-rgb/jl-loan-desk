@@ -20,6 +20,8 @@ import {
   timelinePanel, fundsPanel, warningsPanel, errorsPanel,
 } from './ui/results.js';
 import { productsPanel } from './ui/result-products.js';
+import { openComplexEditor } from './ui/complex-editor.js';
+import * as complexStore from './io/complex-store.js';
 import { expandYearMonth } from './core/dates.js';
 import { formatKRW } from './core/money.js';
 import { DISCLAIMER_SHORT, DISCLAIMER_FULL } from './ui/disclaimer.js';
@@ -114,11 +116,16 @@ function fold(id, defaultCollapsed = false) {
   return {
     collapsible: true,
     collapsed: collapsedOf(id, defaultCollapsed),
-    onToggle: () => toggleCollapse(id),
+    onToggle: () => toggleCollapse(id, defaultCollapsed),
   };
 }
-function toggleCollapse(id) {
-  ui.collapsed[id] = !collapsedOf(id);
+/**
+ * 접기 토글.
+ * ★ 기본값을 함께 받아야 한다. 안 받으면 "기본 접힘" 패널을 눌렀을 때
+ *   현재 상태를 false 로 잘못 읽어 다시 접힌 상태가 되어, 영영 펴지지 않는다.
+ */
+function toggleCollapse(id, defaultCollapsed = false) {
+  ui.collapsed[id] = !collapsedOf(id, defaultCollapsed);
   render();
 }
 let ctx = null;
@@ -126,6 +133,11 @@ let store = null;
 /** 단지에서 자동으로 채운 값들 — "되돌리기"의 원본 */
 let autoValues = {};
 let currentRecordId = null;
+let myComplexes = [];
+
+function refreshMyComplexes() {
+  myComplexes = complexStore.isAvailable() ? complexStore.list() : [];
+}
 
 boot();
 
@@ -139,6 +151,7 @@ async function boot() {
     return;
   }
 
+  refreshMyComplexes();
   store = createStore(defaultInput());
   store.subscribe(() => render());
   render();
@@ -180,7 +193,10 @@ function render() {
       el('div.rail', {}, [
         complexPanel({
           store, ctx,
+          mine: myComplexes,
           ...fold('panel-complex', true),
+          onEditComplex: editComplex,
+          onExportComplexes: exportComplexes,
           onPickComplex: pickComplex,
           onImportComplex: importComplexFile,
           onClearComplex: clearComplex,
@@ -380,6 +396,10 @@ function printFooter(result) {
 // ───────────────────────────── 단지 ─────────────────────────────
 
 async function pickComplex(complexId) {
+  // 내가 만든 단지가 우선이다 — 같은 이름이면 내 것을 쓴다.
+  const own = complexStore.isAvailable() ? complexStore.get(complexId) : null;
+  if (own) { applyComplex(own); return; }
+
   const entry = ctx.complexIndex.complexes.find((c) => c.complexId === complexId);
   if (!entry) return;
   try {
@@ -390,9 +410,67 @@ async function pickComplex(complexId) {
   }
 }
 
+/** 단지 만들기 / 수정. */
+function editComplex(complexId) {
+  if (!complexStore.isAvailable()) {
+    alert('이 브라우저에서는 단지를 저장할 수 없습니다(시크릿 모드이거나 저장이 차단되어 있습니다).\n' +
+          '다른 브라우저에서 만든 뒤 "파일 열기"로 불러와 쓰십시오.');
+    return;
+  }
+  const doc = complexId ? complexStore.get(complexId) : null;
+  openComplexEditor({
+    doc,
+    policies: ctx.policies,
+    onSave: (built) => {
+      try {
+        complexStore.save(built);
+        refreshMyComplexes();
+        applyComplex(built);
+      } catch (e) {
+        alert(e.message);
+      }
+    },
+  });
+}
+
+function exportComplexes() {
+  const bundle = complexStore.exportAll();
+  if (!bundle.complexes.length) { alert('내보낼 단지가 없습니다.'); return; }
+  download(`단지-${bundle.complexes.length}건.json`, bundle);
+}
+
 async function importComplexFile(file) {
+  const text = await readFile(file);
+  let parsed;
   try {
-    const doc = parseComplexFile(await readFile(file), file.name, ctx.policies);
+    parsed = JSON.parse(text);
+  } catch (e) {
+    alert(`${file.name}: JSON 형식이 잘못되었습니다.\n${e.message}`);
+    return;
+  }
+
+  // 여러 단지 묶음이면 보관함에 담는다
+  if (Array.isArray(parsed?.complexes)) {
+    try {
+      const r = complexStore.importBundle(parsed);
+      refreshMyComplexes();
+      render();
+      alert(`단지 ${r.added + r.replaced}건을 불러왔습니다.` +
+            (r.replaced ? ` (${r.replaced}건은 기존 것을 덮어썼습니다)` : '') +
+            `\n${r.names.join(', ')}`);
+    } catch (e) {
+      alert(e.message);
+    }
+    return;
+  }
+
+  // 단일 단지 파일
+  try {
+    const doc = parseComplexFile(text, file.name, ctx.policies);
+    if (complexStore.isAvailable()) {
+      complexStore.save(doc);
+      refreshMyComplexes();
+    }
     applyComplex(doc);
   } catch (e) {
     alert(e.message);

@@ -114,7 +114,8 @@ data/policy/ltv.2027-01-05.json   ← 새로 만듭니다
 대신 화면의 **「파일 열기」**로 내 컴퓨터의 단지 JSON 을 불러와 씁니다.
 저장소에는 가상의 샘플 단지 하나와 템플릿만 둡니다.
 
-단지 JSON 작성법은 [DATA-GUIDE.md](DATA-GUIDE.md) 를 보십시오.
+JSON을 직접 손으로 쓰고 싶다면 [DATA-GUIDE.md](DATA-GUIDE.md) 를 보십시오
+(앱에서 만드는 편이 훨씬 빠릅니다).
 
 ---
 

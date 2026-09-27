@@ -144,3 +144,16 @@
 @media (max-width:760px){
   .banner.warn .msg{-webkit-line-clamp:2;}
 }
+
+/* 단지 만들기: 폰에서는 거의 전체 화면으로 */
+@media (max-width:760px){
+  dialog.editor{max-width:100vw;width:100vw;max-height:100dvh;height:100dvh;border-radius:0;margin:0;}
+  dialog.editor .body{max-height:none;height:calc(100dvh - 118px);padding:var(--s4);}
+  dialog.editor footer{
+    position:sticky;bottom:0;background:var(--bg);
+    padding:var(--s3) var(--s4) calc(var(--s3) + env(safe-area-inset-bottom));
+  }
+  dialog.editor footer .btn{flex:1;height:46px;}
+  .type-row .control{flex-direction:column;}
+  .complex-actions .btn{flex:1 1 calc(50% - var(--s2));}
+}

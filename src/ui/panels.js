@@ -31,31 +31,52 @@ function chipFor(store, path, autoValues) {
 
 // ────────────────────────── 단지 ──────────────────────────
 
-export function complexPanel({ store, ctx, onPickComplex, onImportComplex, onClearComplex, onTypeChange, onConversionPreset, collapsible = false, collapsed = false, onToggle = null }) {
+export function complexPanel({ store, ctx, mine, onPickComplex, onImportComplex, onClearComplex, onTypeChange, onConversionPreset, onEditComplex, onExportComplexes, collapsible = false, collapsed = false, onToggle = null }) {
   const s = store.get().schedule;
   const listed = ctx.complexIndex?.complexes ?? [];
+
+  // 내가 만든 단지를 먼저, 그다음 저장소 샘플.
+  const mineOpts = (mine ?? []).map((c) => ({ value: c.complexId, label: c.name }));
+  const sampleOpts = listed.map((c) => ({ value: c.complexId, label: `${c.name}${c.demo ? ' [샘플]' : ''}` }));
 
   const picker = el('div.field.field-wide', {}, [
     el('div.control', {}, [
       select(
-        [{ value: '', label: '— 단지 선택 (직접 입력) —' }, ...listed.map((c) => ({ value: c.complexId, label: `${c.name}${c.demo ? ' [데모]' : ''}` }))],
+        [
+          { value: '', label: mineOpts.length ? '— 단지 선택 —' : '— 단지 없음 (아래에서 만드세요) —' },
+          ...mineOpts,
+          ...sampleOpts,
+        ],
         s.complexId ?? '',
         (v) => (v ? onPickComplex(v) : onClearComplex())
       ),
-      el('label.btn.sm', { title: '내 컴퓨터의 단지 JSON 파일을 엽니다. 이 방식이 권장됩니다 — 저장소는 공개이므로 실제 단지 데이터를 커밋하지 마십시오.' }, [
-        '파일 열기',
-        el('input', {
-          type: 'file', accept: '.json,application/json', class: 'sr-only',
-          onChange: (e) => { const f = e.target.files?.[0]; if (f) onImportComplex(f); e.target.value = ''; },
-        }),
-      ]),
     ]),
   ]);
 
-  const body = [picker];
+  const actionsRow = el('div.complex-actions', {}, [
+    el('button.btn.sm.primary', { type: 'button', text: '+ 단지 만들기', onClick: () => onEditComplex(null) }),
+    s.enabled && s.complexId && (mine ?? []).some((c) => c.complexId === s.complexId)
+      ? el('button.btn.sm', { type: 'button', text: '수정', onClick: () => onEditComplex(s.complexId) })
+      : null,
+    el('label.btn.sm', { title: '동료가 보낸 단지 파일을 불러옵니다' }, [
+      '파일 열기',
+      el('input', {
+        type: 'file', accept: '.json,application/json', class: 'sr-only',
+        onChange: (e) => { const f = e.target.files?.[0]; if (f) onImportComplex(f); e.target.value = ''; },
+      }),
+    ]),
+    (mine ?? []).length
+      ? el('button.btn.sm', { type: 'button', text: '내보내기', title: '내가 만든 단지를 파일로 저장해 동료에게 보냅니다', onClick: onExportComplexes })
+      : null,
+  ].filter(Boolean));
+
+  const body = [picker, actionsRow];
 
   if (!s.enabled) {
-    body.push(el('p.tiny.faint', { text: '단지를 고르면 분양가·중도금 회차·입주지정기간이 자동으로 채워지고, 입주 시 부족자금까지 계산됩니다. 고르지 않으면 한도·월상환액만 계산합니다.' }));
+    body.push(el('p.tiny.faint', { text:
+      (mine ?? []).length
+        ? '단지를 고르면 분양가·중도금 회차·입주지정기간이 자동으로 채워지고, 입주 시 부족자금까지 계산됩니다.'
+        : '아직 만든 단지가 없습니다. 「단지 만들기」를 눌러 입주자모집공고를 보며 입력하십시오. 이 기기에만 저장되고 인터넷에 올라가지 않습니다.' }));
     return panel('단지', body, { id: 'panel-complex', collapsible, collapsed, onToggle });
   }
 

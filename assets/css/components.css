@@ -102,3 +102,32 @@ details.more > summary{
 details.more > summary::-webkit-details-marker{display:none;}
 details.more > summary::before{content:"＋ ";font-weight:800;}
 details.more[open] > summary::before{content:"－ ";}
+
+/* ── 단지 만들기 화면 ─────────────────────────────────────────────── */
+dialog.editor{max-width:min(640px,94vw);width:100%;}
+dialog.editor .body{padding:var(--s5);max-height:76vh;overflow:auto;}
+dialog.editor h3.sec{
+  font-size:var(--fs-sm);color:var(--accent);font-weight:800;
+  margin:var(--s5) 0 var(--s3);padding-bottom:var(--s1);
+  border-bottom:1px solid var(--accent-line);
+}
+dialog.editor h3.sec:first-of-type{margin-top:var(--s3);}
+dialog.editor footer{flex-wrap:wrap;}
+dialog.editor footer .err{
+  flex:1 1 100%;color:var(--danger);font-size:var(--fs-sm);
+  max-height:150px;overflow:auto;
+}
+dialog.editor footer .err:empty{display:none;}
+
+.type-row{
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:var(--s3);margin-bottom:var(--s2);background:var(--bg-sunken);
+}
+.type-row .type-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s2);}
+.type-row .control{display:flex;gap:var(--s2);margin-bottom:var(--s2);}
+.type-row .control input{
+  flex:1;height:var(--row-h);padding:0 var(--s2);
+  border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);
+}
+
+.complex-actions{display:flex;flex-wrap:wrap;gap:var(--s2);margin-bottom:var(--s2);}
