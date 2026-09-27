@@ -203,6 +203,9 @@ export function collateralPanel({ store, ctx, errors, autoValues }) {
 export function productPanel({ store }) {
   const p = store.get().product;
   return panel('대출조건', [
+    segField('종류', OPTIONS.loanKind, p.loanKind ?? '주택담보', (v) => store.set('product.loanKind', v), {
+      hint: '정책자금 비교 후보가 이 종류로 걸러집니다',
+    }),
     segField('목적', OPTIONS.purpose, p.purpose, (v) => store.set('product.purpose', v)),
     pctField('약정금리', p.annualRate, (v) => store.set('product.annualRate', v), {
       hint: '고객이 실제로 내는 금리. 스트레스 금리는 자동으로 별도 적용됩니다.',
@@ -264,4 +267,56 @@ export function consultationPanel({ store }) {
     }),
     dateField('상담일', c.date, (v) => store.set('consultation.date', v)),
   ], { id: 'panel-consultation' });
+}
+
+
+// ────────────────────── 정책자금 자격 ──────────────────────
+
+/**
+ * 디딤돌·보금자리·버팀목 자격판정에 필요한 입력.
+ *
+ * 기본은 접혀 있다 — 일반 주담대 상담에서 입력칸이 늘어나면 안 된다.
+ * 정책자금을 볼 때만 펼친다.
+ */
+export function eligibilityPanel({ store, open, onToggle }) {
+  const b = store.get().borrower;
+  const l = store.get().lease ?? {};
+
+  const head = el('button.btn.sm', {
+    type: 'button',
+    text: open ? '접기' : '펼치기',
+    onClick: () => onToggle(!open),
+  });
+
+  if (!open) {
+    return panel('정책자금 자격', [
+      el('p.tiny.faint', { text: '디딤돌·보금자리론·버팀목 자격을 판정하려면 순자산·신혼 여부 등이 필요합니다. 펼쳐서 입력하십시오.' }),
+    ], { id: 'panel-eligibility', actions: head });
+  }
+
+  return panel('정책자금 자격', [
+    moneyField('순자산', b.netAssets, (v) => store.set('borrower.netAssets', v), {
+      hint: '부동산·금융자산에서 부채를 뺀 금액',
+    }),
+    intField('만 나이', b.age, (v) => store.set('borrower.age', v), { unit: '세', hint: '청년 상품 판정용' }),
+    intField('전용면적', store.get().collateral.areaSqm, (v) => store.set('collateral.areaSqm', v), {
+      unit: '㎡', step: 0.01,
+      hint: '기금 상품의 85㎡ 요건 판정용. 단지를 고르면 자동으로 채워집니다.',
+    }),
+    intField('자녀 수', b.children, (v) => store.set('borrower.children', v || 0), { unit: '명' }),
+    intField('출산 후 경과', b.newbornWithinMonths, (v) => store.set('borrower.newbornWithinMonths', v), {
+      unit: '개월', hint: '신생아 특례 판정용. 해당 없으면 비워 두십시오.',
+    }),
+    el('div.checks', {}, [
+      checkbox('신혼부부', b.isNewlywed, (v) => store.set('borrower.isNewlywed', v)),
+      checkbox('청약통장 보유', b.hasSubscriptionAccount, (v) => store.set('borrower.hasSubscriptionAccount', v)),
+    ]),
+
+    el('div.field.field-wide', { style: 'margin-top:10px' }, [
+      el('label', {}, ['전세자금대출 ', el('span.tiny.faint', { text: '(해당 시에만)' })]),
+    ]),
+    moneyField('임차보증금', l.deposit, (v) => store.set('lease.deposit', v), {
+      hint: '전세 상품은 담보가 아니라 보증금 기준으로 한도를 잡습니다',
+    }),
+  ], { id: 'panel-eligibility', actions: head });
 }

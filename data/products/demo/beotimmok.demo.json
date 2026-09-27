@@ -1,0 +1,38 @@
+{
+  "meta": {
+    "id": "beotimmok(데모)", "기준일": "2026-09-19", "출처": "없음 — 가상 수치", "출처URL": "",
+    "verified": false, "demo": true, "작성자": "가상 예시",
+    "비고": "⚠ 실제 버팀목 조건이 아닙니다. 동작 확인 전용 가상 수치입니다."
+  },
+  "productId": "beotimmok", "name": "버팀목 전세자금대출", "category": "기금", "kind": "전세",
+  "variants": [
+    {
+      "variantId": "beotimmok-general", "name": "버팀목 일반",
+      "eligibility": { "and": [
+        { "path": "borrower.ownedHouses", "op": "eq", "value": 0, "label": "무주택" },
+        { "path": "borrower.annualIncomeCombined", "op": "lte", "value": 50000000, "label": "부부합산 연소득", "unit": "원" },
+        { "path": "lease.deposit", "op": "lte", "value": 300000000, "label": "임차보증금", "unit": "원" }
+      ] },
+      "limit": { "max": 120000000, "depositRatio": 0.7 },
+      "rateTable": {
+        "incomeBands": [20000000, 40000000, 50000000], "termYears": [2],
+        "matrix": [[0.021], [0.024], [0.027]]
+      },
+      "rateDiscounts": [], "rateFloor": 0.01, "maxTermYears": 10,
+      "repaymentMethods": ["만기일시"]
+    },
+    {
+      "variantId": "beotimmok-newborn", "name": "신생아 특례 전세자금",
+      "eligibility": { "and": [
+        { "path": "borrower.ownedHouses", "op": "eq", "value": 0, "label": "무주택" },
+        { "path": "borrower.newbornWithinMonths", "op": "lte", "value": 24, "label": "출산 후 경과", "unit": "개월" },
+        { "path": "borrower.annualIncomeCombined", "op": "lte", "value": 130000000, "label": "부부합산 연소득", "unit": "원" },
+        { "path": "lease.deposit", "op": "lte", "value": 500000000, "label": "임차보증금", "unit": "원" }
+      ] },
+      "limit": { "max": 300000000, "depositRatio": 0.8 },
+      "rateTable": { "incomeBands": [85000000, 130000000], "termYears": [2], "matrix": [[0.013], [0.019]] },
+      "rateDiscounts": [], "rateFloor": 0.01, "maxTermYears": 10,
+      "repaymentMethods": ["만기일시"]
+    }
+  ]
+}

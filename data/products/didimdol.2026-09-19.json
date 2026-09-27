@@ -1,0 +1,101 @@
+{
+  "meta": {
+    "id": "didimdol", "기준일": "2026-09-19", "출처": "", "출처URL": "",
+    "verified": false, "작성자": "미검수",
+    "비고": "★ 임시 구조값. 디딤돌대출의 소득·자산 요건, 금리표, 우대금리, 한도는 주택도시기금 홈페이지(nhuf.molit.go.kr) 원문으로 확인해 채우십시오. 값이 null 인 요건은 '판정 불가'로 처리되어 자격 판정에서 빠집니다."
+  },
+  "_확인필요": [
+    "유형별 부부합산 연소득 상한 (일반/생애최초/신혼부부/신생아 특례)",
+    "순자산가액 기준",
+    "대상주택 가격 상한과 전용면적 요건",
+    "유형별 대출한도",
+    "소득구간 × 대출기간 금리표",
+    "우대금리 항목과 폭 (청약통장·다자녀·신혼·생애최초 등), 금리 하한",
+    "LTV/DTI 우대 적용 여부와 수치",
+    "대출기간 선택지와 거치기간 허용 여부"
+  ],
+
+  "productId": "didimdol",
+  "name": "디딤돌대출",
+  "category": "기금",
+  "kind": "주택담보",
+
+  "variants": [
+    {
+      "variantId": "didimdol-general",
+      "name": "디딤돌 일반",
+      "eligibility": { "and": [
+        { "path": "borrower.ownedHouses", "op": "eq", "value": 0, "label": "무주택" },
+        { "path": "borrower.annualIncomeCombined", "op": "lte", "value": null, "label": "부부합산 연소득", "unit": "원" },
+        { "path": "borrower.netAssets", "op": "lte", "value": null, "label": "순자산", "unit": "원" },
+        { "path": "house.price", "op": "lte", "value": null, "label": "주택가격", "unit": "원" },
+        { "path": "house.areaSqm", "op": "lte", "value": null, "label": "전용면적", "unit": "㎡" }
+      ] },
+      "limit": { "max": null, "ltvOverride": null, "dtiOverride": null },
+      "rateTable": { "incomeBands": [], "termYears": [], "matrix": [] },
+      "rateDiscounts": [
+        { "id": "subscription", "label": "청약통장", "value": null, "condition": { "path": "borrower.hasSubscriptionAccount", "op": "eq", "value": true } },
+        { "id": "multichild", "label": "다자녀", "value": null, "condition": { "path": "borrower.children", "op": "gte", "value": 2 } },
+        { "id": "firsttime", "label": "생애최초", "value": null, "condition": { "path": "borrower.isFirstTime", "op": "eq", "value": true } }
+      ],
+      "rateFloor": null,
+      "maxTermYears": null,
+      "repaymentMethods": ["원리금균등", "원금균등"],
+      "graceMonthsAllowed": [0, 12]
+    },
+    {
+      "variantId": "didimdol-firsttime",
+      "name": "디딤돌 생애최초",
+      "eligibility": { "and": [
+        { "path": "borrower.ownedHouses", "op": "eq", "value": 0, "label": "무주택" },
+        { "path": "borrower.isFirstTime", "op": "eq", "value": true, "label": "생애최초" },
+        { "path": "borrower.annualIncomeCombined", "op": "lte", "value": null, "label": "부부합산 연소득", "unit": "원" },
+        { "path": "borrower.netAssets", "op": "lte", "value": null, "label": "순자산", "unit": "원" },
+        { "path": "house.price", "op": "lte", "value": null, "label": "주택가격", "unit": "원" },
+        { "path": "house.areaSqm", "op": "lte", "value": null, "label": "전용면적", "unit": "㎡" }
+      ] },
+      "limit": { "max": null, "ltvOverride": null },
+      "rateTable": { "incomeBands": [], "termYears": [], "matrix": [] },
+      "rateDiscounts": [],
+      "rateFloor": null,
+      "maxTermYears": null,
+      "repaymentMethods": ["원리금균등", "원금균등"]
+    },
+    {
+      "variantId": "didimdol-newlywed",
+      "name": "디딤돌 신혼부부",
+      "eligibility": { "and": [
+        { "path": "borrower.ownedHouses", "op": "eq", "value": 0, "label": "무주택" },
+        { "path": "borrower.isNewlywed", "op": "eq", "value": true, "label": "신혼부부" },
+        { "path": "borrower.annualIncomeCombined", "op": "lte", "value": null, "label": "부부합산 연소득", "unit": "원" },
+        { "path": "borrower.netAssets", "op": "lte", "value": null, "label": "순자산", "unit": "원" },
+        { "path": "house.price", "op": "lte", "value": null, "label": "주택가격", "unit": "원" },
+        { "path": "house.areaSqm", "op": "lte", "value": null, "label": "전용면적", "unit": "㎡" }
+      ] },
+      "limit": { "max": null, "ltvOverride": null },
+      "rateTable": { "incomeBands": [], "termYears": [], "matrix": [] },
+      "rateDiscounts": [],
+      "rateFloor": null,
+      "maxTermYears": null,
+      "repaymentMethods": ["원리금균등", "원금균등"]
+    },
+    {
+      "variantId": "didimdol-newborn",
+      "name": "신생아 특례 디딤돌",
+      "eligibility": { "and": [
+        { "path": "borrower.ownedHouses", "op": "eq", "value": 0, "label": "무주택" },
+        { "path": "borrower.newbornWithinMonths", "op": "lte", "value": null, "label": "출산 후 경과", "unit": "개월" },
+        { "path": "borrower.annualIncomeCombined", "op": "lte", "value": null, "label": "부부합산 연소득", "unit": "원" },
+        { "path": "borrower.netAssets", "op": "lte", "value": null, "label": "순자산", "unit": "원" },
+        { "path": "house.price", "op": "lte", "value": null, "label": "주택가격", "unit": "원" },
+        { "path": "house.areaSqm", "op": "lte", "value": null, "label": "전용면적", "unit": "㎡" }
+      ] },
+      "limit": { "max": null, "ltvOverride": null },
+      "rateTable": { "incomeBands": [], "termYears": [], "matrix": [] },
+      "rateDiscounts": [],
+      "rateFloor": null,
+      "maxTermYears": null,
+      "repaymentMethods": ["원리금균등", "원금균등"]
+    }
+  ]
+}

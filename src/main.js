@@ -14,16 +14,17 @@ import { toRecord, fromRecord, compareConfig } from './core/record.js';
 import * as storage from './io/storage.js';
 import { download, readFile, safeFilename } from './io/transfer.js';
 import { el, $, replace, select } from './ui/dom.js';
-import { complexPanel, borrowerPanel, collateralPanel, productPanel, schedulePanel, consultationPanel } from './ui/panels.js';
+import { complexPanel, borrowerPanel, collateralPanel, productPanel, schedulePanel, consultationPanel, eligibilityPanel } from './ui/panels.js';
 import {
   summaryStrip, scriptPanel, limitPanel, scenarioPanel, schedulePanelResult,
   timelinePanel, fundsPanel, warningsPanel, errorsPanel,
 } from './ui/results.js';
+import { productsPanel } from './ui/result-products.js';
 import { expandYearMonth } from './core/dates.js';
 import { formatKRW } from './core/money.js';
 import { DISCLAIMER_SHORT, DISCLAIMER_FULL } from './ui/disclaimer.js';
 
-const ui = { monthlySchedule: false, bannerOpen: false };
+const ui = { monthlySchedule: false, bannerOpen: false, eligibilityOpen: false };
 let ctx = null;
 let store = null;
 /** 단지에서 자동으로 채운 값들 — "되돌리기"의 원본 */
@@ -66,7 +67,7 @@ function render() {
   const input = store.get();
   let result;
   try {
-    result = derive(input, ctx.policies);
+    result = derive(input, ctx.policies, { products: ctx.products });
   } catch (e) {
     replace($('#app'), [fatal(e)]);
     return;
@@ -91,6 +92,11 @@ function render() {
         borrowerPanel({ store, errors: result.errors, autoValues }),
         collateralPanel({ store, ctx, errors: result.errors, autoValues }),
         productPanel({ store }),
+        eligibilityPanel({
+          store,
+          open: ui.eligibilityOpen,
+          onToggle: (v) => { ui.eligibilityOpen = v; render(); },
+        }),
         schedulePanel({ store }),
         consultationPanel({ store }),
       ].filter(Boolean)),
@@ -99,6 +105,7 @@ function render() {
         errorsPanel(result.errors),
         hasErrors ? null : scriptPanel(result),
         hasErrors ? null : limitPanel(result),
+        hasErrors ? null : productsPanel(result),
         hasErrors ? null : fundsPanel(result),
         hasErrors ? null : timelinePanel(result),
         hasErrors ? null : scenarioPanel(result),
@@ -174,6 +181,13 @@ function banners() {
       el('b', { text: '미검증 설정값 사용 중. ' }),
       `${t.unverified.join(', ')} 의 수치가 아직 원문으로 확인되지 않았습니다.`,
       bannerToggle(),
+    ]));
+  }
+
+  if (ctx.productWarnings?.length) {
+    out.push(el('div.banner.warn', {}, [
+      el('b', { text: '상품 설정을 일부 읽지 못했습니다. ' }),
+      el('ul', {}, ctx.productWarnings.map((w) => el('li', { text: w }))),
     ]));
   }
 

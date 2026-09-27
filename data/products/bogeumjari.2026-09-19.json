@@ -1,0 +1,51 @@
+{
+  "meta": {
+    "id": "bogeumjari", "기준일": "2026-09-19", "출처": "", "출처URL": "",
+    "verified": false, "작성자": "미검수",
+    "비고": "★ 임시 구조값. 한국주택금융공사(hf.go.kr) 원문으로 확인해 채우십시오."
+  },
+  "_확인필요": [
+    "유형별 소득 요건 (일반/우대형)",
+    "대상주택 가격 상한",
+    "대출한도",
+    "금리표와 우대금리 항목",
+    "LTV/DTI 적용 수치",
+    "대출기간 선택지"
+  ],
+  "productId": "bogeumjari",
+  "name": "보금자리론",
+  "category": "주금공",
+  "kind": "주택담보",
+  "variants": [
+    {
+      "variantId": "bogeumjari-general",
+      "name": "보금자리론 일반",
+      "eligibility": { "and": [
+        { "path": "borrower.ownedHouses", "op": "lte", "value": null, "label": "보유주택수", "unit": "채" },
+        { "path": "borrower.annualIncomeCombined", "op": "lte", "value": null, "label": "부부합산 연소득", "unit": "원" },
+        { "path": "house.price", "op": "lte", "value": null, "label": "주택가격", "unit": "원" }
+      ] },
+      "limit": { "max": null, "ltvOverride": null, "dtiOverride": null },
+      "rateTable": { "incomeBands": [], "termYears": [], "matrix": [] },
+      "rateDiscounts": [],
+      "rateFloor": null,
+      "maxTermYears": null,
+      "repaymentMethods": ["원리금균등", "원금균등"]
+    },
+    {
+      "variantId": "bogeumjari-preferential",
+      "name": "보금자리론 우대형",
+      "eligibility": { "and": [
+        { "path": "borrower.ownedHouses", "op": "eq", "value": 0, "label": "무주택" },
+        { "path": "borrower.annualIncomeCombined", "op": "lte", "value": null, "label": "부부합산 연소득", "unit": "원" },
+        { "path": "house.price", "op": "lte", "value": null, "label": "주택가격", "unit": "원" }
+      ] },
+      "limit": { "max": null, "ltvOverride": null },
+      "rateTable": { "incomeBands": [], "termYears": [], "matrix": [] },
+      "rateDiscounts": [],
+      "rateFloor": null,
+      "maxTermYears": null,
+      "repaymentMethods": ["원리금균등", "원금균등"]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "id": "general-mortgage", "기준일": "2026-09-19", "출처": "", "출처URL": "",
+    "verified": false, "작성자": "미검수",
+    "비고": "은행권 일반 주택담보대출. 금리는 은행·개인별로 달라 표로 고정할 수 없으므로 상담사가 화면에서 직접 입력합니다(rateTable 을 비워 두면 화면 입력값을 씁니다). 자격요건이 따로 없으므로 eligibility 는 비어 있습니다 — 한도는 LTV·DSR 이 결정합니다."
+  },
+  "_확인필요": ["상품 자체의 금액 상한이 있는지 (보통 없음)"],
+  "productId": "general-mortgage",
+  "name": "일반 주택담보대출",
+  "category": "은행권",
+  "kind": "주택담보",
+  "variants": [
+    {
+      "variantId": "general-mortgage",
+      "name": "일반 주택담보대출",
+      "eligibility": null,
+      "limit": { "max": null },
+      "rateTable": { "incomeBands": [], "termYears": [], "matrix": [] },
+      "rateDiscounts": [],
+      "rateFloor": null,
+      "maxTermYears": null,
+      "repaymentMethods": ["원리금균등", "원금균등"],
+      "useManualRate": true
+    }
+  ]
+}

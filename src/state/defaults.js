@@ -25,6 +25,15 @@ export function defaultInput() {
       regionGrade: '비규제',
       stressRegion: '수도권',
       existingDebts: [],
+
+      // ── 정책자금 자격판정용. 일반 주담대 상담에서는 건드릴 일이 없으므로
+      //    화면에서는 접힌 패널에 둔다.
+      netAssets: 0,
+      age: null,
+      isNewlywed: false,
+      newbornWithinMonths: null,
+      hasSubscriptionAccount: false,
+      children: 0,
     },
 
     collateral: {
@@ -39,6 +48,7 @@ export function defaultInput() {
 
     product: {
       purpose: '구입',
+      loanKind: '주택담보',   // 주택담보 | 전세 — 상품 후보를 가르는 축
       lenderTier: '은행권',
       annualRate: 0.042,
       rateType: '변동',
@@ -51,6 +61,12 @@ export function defaultInput() {
       manualCapNote: '',
       firstPaymentDate: null,
       scenarioDeltas: [0, 0.005, 0.01, 0.015],
+    },
+
+    // 전세자금대출은 담보가 아니라 임차보증금 기준으로 한도를 잡는다.
+    lease: {
+      deposit: 0,
+      areaSqm: null,
     },
 
     schedule: {
@@ -91,5 +107,12 @@ export const OPTIONS = {
   stressRegion: ['수도권', '비수도권'],
   interestMode: ['후불제', '이자납부', '무이자'],
   debtKind: ['신용대출', '마이너스통장', '주택담보대출', '전세자금대출', '기타담보대출'],
+  loanKind: [
+    { value: '주택담보', label: '주택 구입·담보' },
+    { value: '전세', label: '전세자금' },
+  ],
   termYears: [10, 15, 20, 30, 35, 40],
 };
+
+/** 상품 종류 — 전세는 담보 대신 보증금 경로를 탄다. */
+export const PRODUCT_KINDS = { 주택담보: '주택담보', 전세: '전세' };

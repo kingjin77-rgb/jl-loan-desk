@@ -1,0 +1,27 @@
+{
+  "meta": {
+    "id": "bogeumjari(데모)", "기준일": "2026-09-19", "출처": "없음 — 가상 수치", "출처URL": "",
+    "verified": false, "demo": true, "작성자": "가상 예시",
+    "비고": "⚠ 실제 보금자리론 조건이 아닙니다. 동작 확인 전용 가상 수치입니다."
+  },
+  "productId": "bogeumjari", "name": "보금자리론", "category": "주금공", "kind": "주택담보",
+  "variants": [
+    {
+      "variantId": "bogeumjari-general", "name": "보금자리론 일반",
+      "eligibility": { "and": [
+        { "path": "borrower.ownedHouses", "op": "lte", "value": 1, "label": "보유주택수", "unit": "채" },
+        { "path": "borrower.annualIncomeCombined", "op": "lte", "value": 70000000, "label": "부부합산 연소득", "unit": "원" },
+        { "path": "house.price", "op": "lte", "value": 600000000, "label": "주택가격", "unit": "원" }
+      ] },
+      "limit": { "max": 360000000, "ltvOverride": 0.7 },
+      "rateTable": {
+        "incomeBands": [null], "termYears": [10, 20, 30, 40],
+        "matrix": [[0.0395, 0.0405, 0.0415, 0.0425]]
+      },
+      "rateDiscounts": [
+        { "id": "firsttime", "label": "생애최초", "value": 0.001, "condition": { "path": "borrower.isFirstTime", "op": "eq", "value": true } }
+      ],
+      "rateFloor": null, "maxTermYears": 40, "repaymentMethods": ["원리금균등", "원금균등"]
+    }
+  ]
+}

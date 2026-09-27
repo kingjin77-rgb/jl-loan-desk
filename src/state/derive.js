@@ -23,6 +23,8 @@ import { buildTimeline } from '../core/timeline.js';
 import { jungdogeumPlan } from '../core/jungdogeum.js';
 import { janggeumPlan } from '../core/janggeum.js';
 import { won, formatKRW } from '../core/money.js';
+import { flattenProducts } from '../core/products.js';
+import { compareProducts, bestPick } from '../core/compare.js';
 
 /**
  * @param {object} input     store 의 평탄화된 입력값
@@ -34,6 +36,8 @@ import { won, formatKRW } from '../core/money.js';
  * @returns {object}         화면이 그대로 그릴 수 있는 결과 묶음
  */
 export function derive(input, policies, opts = {}) {
+  // products 는 두 번째 인자로 같이 오거나(ctx 전체) policies 만 올 수 있다.
+  const productDocs = opts.products ?? [];
   const errors = [];
   const result = { errors, input };
 
@@ -132,7 +136,7 @@ export function derive(input, policies, opts = {}) {
     leverSet(input, deduction),
     // evaluateLevers 는 computeLimit 모양의 객체를 기대한다. derive 의 전체 결과가
     // 아니라 그 안의 limit 을 돌려줘야 한다.
-    (ctx) => derive(ctx, policies, { skipLevers: true }).limit,
+    (ctx) => derive(ctx, policies, { skipLevers: true, products: productDocs }).limit,
     input
   );
 
@@ -198,7 +202,60 @@ export function derive(input, policies, opts = {}) {
     });
   }
 
-  // ── 10) 문장
+  // ── 10) 정책자금 비교
+  //    상품 한도는 또 하나의 상한일 뿐이므로, 이미 만든 caps 와 함께 min 을 취한다.
+  let products = null;
+  if (productDocs.length && !opts.skipLevers) {
+    const eligibilityCtx = {
+      borrower: {
+        ...input.borrower,
+        annualIncomeCombined: totalIncome(input.borrower),
+      },
+      house: {
+        price: houseValue,
+        areaSqm: input.collateral.areaSqm,
+      },
+      lease: input.lease ?? {},
+      product: input.product,
+    };
+    // 구입 상담에 전세대출이 후보로 끼면 엉뚱한 상품이 1순위로 추천된다.
+    // 대출 종류가 맞는 상품만 비교한다.
+    const kind = input.product.loanKind ?? '주택담보';
+    const candidates = flattenProducts(productDocs).filter((v) => (v.kind ?? '주택담보') === kind);
+
+    const rows = compareProducts(candidates, eligibilityCtx, {
+      houseValue,
+      termMonths: input.product.termMonths,
+      method: input.product.method,
+      graceMonths: input.product.graceMonths,
+      // 상품 한도 외의 상한. 전세 상품은 LTV 가 무의미하므로 화면에서 구분해 보여준다.
+      otherCaps: caps.filter((c) => c.id !== CAP_IDS.MANUAL),
+    });
+    // 일반 주담대는 금리표가 없다 — 화면의 약정금리를 그대로 쓰고,
+    // 금리가 정해졌으니 월 상환액도 여기서 다시 계산한다(안 하면 표에 "—" 로 남는다).
+    for (const r of rows) {
+      const isManual = productDocs.some((d) =>
+        (d.variants ?? []).some((v) => v.variantId === r.variantId && v.useManualRate));
+      if (r.rate == null && isManual) {
+        r.rate = input.product.annualRate;
+        r.rateDetail = { ...r.rateDetail, final: r.rate, manual: true };
+        if (r.amount > 0) {
+          const pay = amortize({
+            principal: r.amount,
+            annualRate: r.rate,
+            termMonths: r.termMonths,
+            method: input.product.method ?? METHODS.EQUAL_TOTAL,
+            graceMonths: input.product.graceMonths ?? 0,
+          });
+          r.monthlyPayment = pay.monthlyPayment ?? pay.maxPaymentAfterGrace ?? pay.firstPayment;
+          r.totalInterest = pay.totalInterest;
+        }
+      }
+    }
+    products = { rows, best: bestPick(rows) };
+  }
+
+  // ── 11) 문장
   const narrative = buildNarrative(limit, { levers });
   const paymentLine = paymentNarrative(payment, amortInput);
 
@@ -214,6 +271,7 @@ export function derive(input, policies, opts = {}) {
   result.timeline = timeline;
   result.jungdogeum = jungdogeum;
   result.janggeum = janggeum;
+  result.products = products;
   result.narrative = narrative;
   result.paymentLine = paymentLine;
   result.headline = janggeum ? janggeum.headline : `${narrative.headline} · 월 ${formatKRW(payment.monthlyPayment ?? payment.firstPayment)}`;

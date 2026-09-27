@@ -5,7 +5,7 @@
  * 모든 경로는 이 파일의 위치(import.meta.url) 기준으로 푼다.
  */
 
-import { validatePolicy, validateComplex, collectUnsetValues, collectTrustFlags } from './validate.js';
+import { validatePolicy, validateComplex, validateMeta, collectUnsetValues, collectTrustFlags } from './validate.js';
 
 const DATA_ROOT = new URL('../../data/', import.meta.url);
 
@@ -48,11 +48,25 @@ export async function loadAll(profileName = null) {
   const entries = Object.entries(profile.policy);
   const docs = await Promise.all(entries.map(([, path]) => getJSON(path)));
 
+  const productWarnings = [];
   const policies = {};
   entries.forEach(([key, path], i) => {
     policies[key] = validatePolicy(docs[i], path);
     policies[key].__path = path;
   });
+
+  // 상품 파일 — 없거나 깨져도 앱 전체를 멈추지 않는다. 일반 주담대 계산은 계속 되어야 한다.
+  const products = [];
+  for (const path of profile.products ?? []) {
+    try {
+      const doc = await getJSON(path);
+      validateMeta(doc, path).forEach((m) => productWarnings.push(`${path}: ${m}`));
+      doc.__path = path;
+      products.push(doc);
+    } catch (e) {
+      productWarnings.push(`${path}: ${e.message}`);
+    }
+  }
 
   let complexIndex = { complexes: [] };
   try {
@@ -67,6 +81,8 @@ export async function loadAll(profileName = null) {
     profileLabel: profile.label ?? name,
     profiles: Object.entries(manifest.profiles).map(([k, v]) => ({ key: k, label: v.label ?? k })),
     policies,
+    products,
+    productWarnings,
     complexIndex,
     trust: collectTrustFlags(policies),
     unset: collectUnsetValues(policies),

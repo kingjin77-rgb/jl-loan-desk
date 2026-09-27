@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "id": "general-mortgage(데모)", "기준일": "2026-09-19", "출처": "없음 — 화면 입력값 사용", "출처URL": "",
+    "verified": false, "demo": true, "작성자": "가상 예시",
+    "비고": "일반 주담대는 금리가 은행·개인별로 달라 표로 고정하지 않습니다. 화면의 '약정금리' 입력값을 그대로 씁니다."
+  },
+  "productId": "general-mortgage", "name": "일반 주택담보대출", "category": "은행권", "kind": "주택담보",
+  "variants": [
+    {
+      "variantId": "general-mortgage", "name": "일반 주택담보대출",
+      "eligibility": null,
+      "limit": { "max": null },
+      "rateTable": { "incomeBands": [], "termYears": [], "matrix": [] },
+      "rateDiscounts": [], "rateFloor": null, "maxTermYears": 40,
+      "repaymentMethods": ["원리금균등", "원금균등"], "useManualRate": true
+    }
+  ]
+}
