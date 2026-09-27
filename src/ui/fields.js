@@ -7,46 +7,91 @@
  */
 
 import { el, field, segmented, select } from './dom.js';
-import { parseKRW, parsePct, formatNumber, formatKRW } from '../core/money.js';
+import { parseKRW, parsePct, formatNumber, formatKRW, parseManwon, toManwon } from '../core/money.js';
 
 /**
- * 금액 입력. 값은 원 단위 숫자로 store 에 들어간다.
+ * ★ 자유 입력 공통 처리.
  *
- * 상담 속도가 걸린 자리다:
- * - "3억8천", "38,000만", "380000000" 을 전부 받는다 (parseKRW)
- * - ↑/↓ 로 1,000만원씩, Shift+↑/↓ 로 1억씩 올리고 내린다 — 고객 앞에서 숫자를
- *   지웠다 다시 치는 대신 바로 조정할 수 있어야 한다
- * - 입력한 값을 바로 아래에 한국어로 되읽어 준다(자릿수 오타를 그 자리에서 잡는다)
+ * 두 가지를 막는다:
+ *  1) 한글 IME 조합 중에 값을 읽으면 중간 자모("ㅇ", "어")가 들어온다.
+ *     조합이 끝날 때까지 onChange 를 미룬다.
+ *  2) 입력 중 화면을 다시 그리면 포커스·커서·조합이 날아간다.
+ *     window.__jlTyping 을 세워 두면 main.js 가 입력 영역을 건드리지 않는다.
+ */
+function typingInput(props, onValue) {
+  let composing = false;
+  return el('input', {
+    ...props,
+    onCompositionStart: () => { composing = true; },
+    onCompositionEnd: (e) => {
+      composing = false;
+      emit(e.target.value);
+    },
+    onInput: (e) => {
+      if (composing || e.isComposing) return;   // 조합 중에는 손대지 않는다
+      emit(e.target.value);
+    },
+  });
+
+  function emit(raw) {
+    window.__jlTyping = true;
+    try { onValue(raw); } finally { window.__jlTyping = false; }
+  }
+}
+
+/**
+ * 금액 입력 — **만원 단위**.
+ *
+ * store 에는 원 단위로 들어가고, 화면에서는 만원으로 주고받는다.
+ * 시중 계산기가 다 그렇게 하고, 자릿수가 4자리 줄어 폰에서 치기 쉽다.
+ *   5억 → "50000" 만원
+ * "5억", "3억8천" 처럼 단위를 붙여 쳐도 그대로 받는다.
+ *
+ * 상담 속도:
+ *  - ↑↓ 로 1,000만원씩, Shift+↑↓ 로 1억씩
+ *  - 입력값을 바로 아래에 한국어로 되읽어 자릿수 오타를 그 자리에서 잡는다
  */
 export function moneyField(label, value, onChange, opts = {}) {
-  const STEP = opts.step ?? 10_000_000;        // ↑/↓ 1,000만원
-  const BIG_STEP = opts.bigStep ?? 100_000_000; // Shift+↑/↓ 1억
+  const STEP = opts.step ?? 1000;        // 만원 단위: 1,000만원
+  const BIG_STEP = opts.bigStep ?? 10000; // 1억
 
-  const input = el('input.num', {
+  const shown = value ? formatNumber(toManwon(value)) : '';
+
+  const input = typingInput({
+    class: 'num',
     type: 'text',
     inputmode: 'numeric',
-    value: value ? formatNumber(value) : '',
+    value: shown,
     placeholder: opts.placeholder ?? '0',
-    onInput: (e) => onChange(parseKRW(e.target.value)),
     onBlur: (e) => {
-      const v = parseKRW(e.target.value);
-      e.target.value = v ? formatNumber(v) : '';
+      const v = parseManwon(e.target.value);
+      e.target.value = v ? formatNumber(toManwon(v)) : '';
       if (opts.onBlurRender) opts.onBlurRender();
     },
     onKeyDown: (e) => {
       if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
       e.preventDefault();
       const step = e.shiftKey ? BIG_STEP : STEP;
-      const cur = parseKRW(e.target.value);
-      const next = Math.max(0, cur + (e.key === 'ArrowUp' ? step : -step));
+      const curManwon = toManwon(parseManwon(e.target.value)) || 0;
+      const next = Math.max(0, curManwon + (e.key === 'ArrowUp' ? step : -step));
       e.target.value = next ? formatNumber(next) : '';
-      onChange(next);
+      onChange(next * 10_000);
     },
+  }, (raw) => onChange(parseManwon(raw)));
+
+  // 되읽기 — 자릿수를 잘못 친 것을 눈으로 바로 잡는다.
+  // 입력 중에는 화면을 다시 그리지 않으므로(포커스 보호) 이 줄만 직접 갱신한다.
+  const hint = value > 0 ? formatKRW(value) : opts.hint ?? null;
+  const wrap = field(label, input, { ...opts, unit: opts.unit ?? '만원', hint });
+
+  const hintEl = wrap.querySelector('.hint');
+  input.addEventListener('input', () => {
+    if (!hintEl) return;
+    const v = parseManwon(input.value);
+    hintEl.textContent = v > 0 ? formatKRW(v) : (opts.hint ?? '');
   });
 
-  // 되읽기 — 자릿수를 잘못 친 것을 눈으로 바로 잡는다
-  const hint = value > 0 ? formatKRW(value) : opts.hint ?? null;
-  return field(label, input, { ...opts, unit: opts.unit ?? '원', hint });
+  return wrap;
 }
 
 /**
@@ -57,12 +102,12 @@ export function pctField(label, ratio, onChange, opts = {}) {
   const STEP = opts.step ?? 0.001;
   const BIG_STEP = opts.bigStep ?? 0.005;
 
-  const input = el('input.num', {
+  const input = typingInput({
+    class: 'num',
     type: 'text',
     inputmode: 'decimal',
     value: ratio != null ? (ratio * 100).toFixed(opts.digits ?? 3).replace(/\.?0+$/, '') : '',
     placeholder: opts.placeholder ?? '0',
-    onInput: (e) => onChange(parsePct(e.target.value)),
     onKeyDown: (e) => {
       if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
       e.preventDefault();
@@ -72,30 +117,30 @@ export function pctField(label, ratio, onChange, opts = {}) {
       e.target.value = (next * 100).toFixed(opts.digits ?? 3).replace(/\.?0+$/, '');
       onChange(next);
     },
-  });
+  }, (raw) => onChange(parsePct(raw)));
   return field(label, input, { ...opts, unit: opts.unit ?? '%' });
 }
 
 /** 정수 입력(개월·건수 등). */
 export function intField(label, value, onChange, opts = {}) {
-  const input = el('input.num', {
+  const input = typingInput({
+    class: 'num',
     type: 'number',
     min: opts.min ?? 0,
     max: opts.max ?? undefined,
     step: opts.step ?? 1,
     value: value ?? '',
-    onInput: (e) => onChange(e.target.value === '' ? null : Number(e.target.value)),
-  });
+  }, (raw) => onChange(raw === '' ? null : Number(raw)));
   return field(label, input, opts);
 }
 
 export function textField(label, value, onChange, opts = {}) {
-  const input = el('input', {
+  // 단지명 등 한글을 치는 칸이다. 조합 중 값을 읽으면 자모가 들어온다.
+  const input = typingInput({
     type: opts.type ?? 'text',
     value: value ?? '',
     placeholder: opts.placeholder ?? '',
-    onInput: (e) => onChange(e.target.value),
-  });
+  }, (raw) => onChange(raw));
   return field(label, input, opts);
 }
 

@@ -131,3 +131,6 @@ dialog.editor footer .err:empty{display:none;}
 }
 
 .complex-actions{display:flex;flex-wrap:wrap;gap:var(--s2);margin-bottom:var(--s2);}
+
+/* 비어 있는 되읽기 줄은 공간을 차지하지 않는다 */
+.field .hint:empty{display:none;}

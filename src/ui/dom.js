@@ -67,7 +67,9 @@ export function field(label, control, { hint = null, unit = null, error = null, 
     el('label', {}, [label, chip ? ' ' : null, chip]),
     el('div.control', {}, [control, unit ? el('span.unit', { text: unit }) : null]),
   ]);
-  if (hint || error) wrap.append(el('div.hint', { class: error ? 'danger-text' : '', text: error || hint }));
+  // hint 자리는 항상 만든다 — 입력 중 되읽기를 여기에 써 넣기 때문이다.
+  // 비어 있으면 CSS 가 공간을 차지하지 않는다(.hint:empty).
+  wrap.append(el('div.hint', { class: error ? 'danger-text' : '', text: error || hint || '' }));
   return wrap;
 }
 

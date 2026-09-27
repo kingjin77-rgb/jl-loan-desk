@@ -28,11 +28,33 @@ export function openComplexEditor({ doc = null, policies, onSave, onCancel = () 
   const body = el('div.body');
   const foot = el('footer');
 
+  // 다시 그리면 입력칸이 새 노드로 바뀌어 포커스·커서·한글 조합이 날아간다.
+  //  set      : 구조가 바뀌는 것(세그먼트·셀렉트·타입 추가/삭제) → 다시 그린다
+  //  setQuiet : 글자·숫자 입력 → 값만 저장하고, 파생 표시만 직접 갱신한다
   const set = (k, v) => { form[k] = v; draw(); };
+  const setQuiet = (k, v) => { form[k] = v; refreshDerived(); };
   const setType = (i, k, v) => {
     form.types = form.types.map((t, j) => (j === i ? { ...t, [k]: v } : t));
-    draw();
+    refreshDerived();
   };
+
+  // 입력하는 동안 갱신해야 하는 것: 비율 합계, 회차 날짜 미리보기
+  let ratioBox = null;
+  let roundsBox = null;
+  function refreshDerived() {
+    if (ratioBox) {
+      const rc = ratioCheck(form);
+      ratioBox.className = `callout ${rc.ok ? 'ok' : 'warn'}`;
+      ratioBox.replaceChildren(
+        el('b', { text: rc.message }),
+        rc.ok ? null : el('div.tiny', { text: '계약금 + 중도금 전 회차 + 잔금 = 100% 가 되어야 합니다.' }),
+      );
+    }
+    if (roundsBox) {
+      const rs = expandRounds(form);
+      roundsBox.textContent = rs.length && rs[0].date ? `→ ${rs.map((r) => r.date).join(' · ')}` : '';
+    }
+  }
 
   function draw() {
     const rc = ratioCheck(form);
@@ -45,7 +67,7 @@ export function openComplexEditor({ doc = null, policies, onSave, onCancel = () 
         '입주자모집공고를 보면서 그대로 입력하십시오. 이 기기에만 저장되며 인터넷에 올라가지 않습니다.' }),
 
       sec('단지'),
-      textField('단지명', form.name, (v) => set('name', v), { placeholder: '예) 양주 백석 모아엘가 그랑데' }),
+      textField('단지명', form.name, (v) => setQuiet('name', v), { placeholder: '예) 양주 백석 모아엘가 그랑데' }),
       el('div.field', {}, [
         el('label', { text: '소재지' }),
         el('div.control', {}, [
@@ -59,10 +81,10 @@ export function openComplexEditor({ doc = null, policies, onSave, onCancel = () 
         { hint: '주택임대차보호법 시행령 구분. 모르면 담당자에게 확인하십시오 — 한도가 수천만원 달라집니다.' }),
 
       sec('입주'),
-      textField('입주예정 / 지정기간 개시', form.moveInStart, (v) => set('moveInStart', v), {
+      textField('입주예정 / 지정기간 개시', form.moveInStart, (v) => setQuiet('moveInStart', v), {
         placeholder: '2028-06-01 또는 2028-06', hint: '연월만 써도 됩니다',
       }),
-      textField('입주지정기간 종료', form.moveInEnd, (v) => set('moveInEnd', v), {
+      textField('입주지정기간 종료', form.moveInEnd, (v) => setQuiet('moveInEnd', v), {
         placeholder: '2028-08-31 (비워도 됨)',
       }),
 
@@ -88,40 +110,40 @@ export function openComplexEditor({ doc = null, policies, onSave, onCancel = () 
         onClick: () => { form.types = [...form.types, { typeId: '', areaSqm: null, price: 0, expansion: 0, option: 0 }]; draw(); } }),
 
       sec('납부 일정'),
-      el('div.callout', { class: rc.ok ? 'ok' : 'warn', style: 'margin-bottom:10px' }, [
+      (ratioBox = el('div.callout', { class: rc.ok ? 'ok' : 'warn', style: 'margin-bottom:10px' }, [
         el('b', { text: rc.message }),
         !rc.ok ? el('div.tiny', { text: '계약금 + 중도금 전 회차 + 잔금 = 100% 가 되어야 합니다.' }) : null,
-      ].filter(Boolean)),
-      pctField('계약금 비율', form.contractRatio, (v) => set('contractRatio', v), { digits: 1 }),
-      dateField('계약일', form.contractDate, (v) => set('contractDate', v)),
-      intField('중도금 회차수', form.roundCount, (v) => set('roundCount', v ?? 0), { unit: '회' }),
-      pctField('회차당 비율', form.roundRatio, (v) => set('roundRatio', v), { digits: 1 }),
-      dateField('중도금 1회차일', form.firstRoundDate, (v) => set('firstRoundDate', v)),
-      intField('회차 간격', form.roundIntervalMonths, (v) => set('roundIntervalMonths', v ?? 0), {
+      ].filter(Boolean))),
+      pctField('계약금 비율', form.contractRatio, (v) => setQuiet('contractRatio', v), { digits: 1 }),
+      dateField('계약일', form.contractDate, (v) => setQuiet('contractDate', v)),
+      intField('중도금 회차수', form.roundCount, (v) => setQuiet('roundCount', v ?? 0), { unit: '회' }),
+      pctField('회차당 비율', form.roundRatio, (v) => setQuiet('roundRatio', v), { digits: 1 }),
+      dateField('중도금 1회차일', form.firstRoundDate, (v) => setQuiet('firstRoundDate', v)),
+      intField('회차 간격', form.roundIntervalMonths, (v) => setQuiet('roundIntervalMonths', v ?? 0), {
         unit: '개월', hint: '보통 4개월. 나머지 회차 날짜가 자동으로 잡힙니다.',
       }),
-      rounds.length && rounds[0].date
-        ? el('p.tiny.faint', { text: `→ ${rounds.map((r) => r.date).join(' · ')}` })
-        : null,
-      pctField('잔금 비율', form.balanceRatio, (v) => set('balanceRatio', v), { digits: 1,
+      (roundsBox = el('p.tiny.faint', {
+        text: rounds.length && rounds[0].date ? `→ ${rounds.map((r) => r.date).join(' · ')}` : '',
+      })),
+      pctField('잔금 비율', form.balanceRatio, (v) => setQuiet('balanceRatio', v), { digits: 1,
         hint: '잔금일은 입주지정기간 개시일로 자동 처리됩니다' }),
 
       sec('중도금대출'),
-      pctField('대출 비율', form.jungdogeumRatio, (v) => set('jungdogeumRatio', v), { digits: 1 }),
-      pctField('금리', form.jungdogeumRate, (v) => set('jungdogeumRate', v)),
+      pctField('대출 비율', form.jungdogeumRatio, (v) => setQuiet('jungdogeumRatio', v), { digits: 1 }),
+      pctField('금리', form.jungdogeumRate, (v) => setQuiet('jungdogeumRate', v)),
       segField('이자방식', OPTIONS.interestMode, form.interestMode, (v) => set('interestMode', v)),
-      textField('취급은행', form.jungdogeumBank, (v) => set('jungdogeumBank', v), { placeholder: '(선택)' }),
+      textField('취급은행', form.jungdogeumBank, (v) => setQuiet('jungdogeumBank', v), { placeholder: '(선택)' }),
 
       sec('부대비용'),
-      pctField('취득세율', form.acquisitionTaxRate, (v) => set('acquisitionTaxRate', v), { digits: 2 }),
-      moneyField('법무·중개비', form.legalFee, (v) => set('legalFee', v)),
-      moneyField('선수관리비', form.prepaidMgmt, (v) => set('prepaidMgmt', v)),
+      pctField('취득세율', form.acquisitionTaxRate, (v) => setQuiet('acquisitionTaxRate', v), { digits: 2 }),
+      moneyField('법무·중개비', form.legalFee, (v) => setQuiet('legalFee', v)),
+      moneyField('선수관리비', form.prepaidMgmt, (v) => setQuiet('prepaidMgmt', v)),
 
       sec('기록'),
-      textField('출처', form.sourceDoc, (v) => set('sourceDoc', v), {
+      textField('출처', form.sourceDoc, (v) => setQuiet('sourceDoc', v), {
         placeholder: '입주자모집공고문(2026.3.5)', hint: '나중에 값이 의심스러울 때 되짚을 단서입니다',
       }),
-      textField('작성자', form.author, (v) => set('author', v)),
+      textField('작성자', form.author, (v) => setQuiet('author', v)),
     );
 
     foot.replaceChildren(

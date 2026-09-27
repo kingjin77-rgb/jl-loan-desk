@@ -153,7 +153,10 @@ async function boot() {
 
   refreshMyComplexes();
   store = createStore(defaultInput());
-  store.subscribe(() => render());
+  // 입력 위젯이 값만 바꾼 경우에는 입력 영역을 다시 그리지 않는다.
+  // 다시 그리면 포커스·커서·한글 조합이 전부 날아간다.
+  store.subscribe(() => render({ keepRail: Boolean(window.__jlTyping) }));
+  mountShell();
   render();
 }
 
@@ -167,12 +170,43 @@ function fatal(e) {
 }
 
 // ───────────────────────────── 렌더 ─────────────────────────────
+/**
+ * ★ 화면을 통째로 다시 만들지 않는다.
+ *
+ * 예전에는 키 한 번마다 #app 을 전부 갈아엎었다. 그래서 입력칸이 새 노드로
+ * 바뀌며 **포커스·커서 위치·한글 조합이 매 글자 날아갔다**("6000" 을 치면 "6" 만
+ * 남았다). 껍데기는 한 번만 만들고 영역별로 바꿔 끼운다.
+ *
+ * keepRail: 입력 위젯이 값만 바꾼 경우. 입력 영역은 손대지 않는다.
+ */
+const shell = {};
 
-function render() {
-  const active = document.activeElement;
-  const focusKey = active?.id || null;
-  const selStart = active?.selectionStart ?? null;
+function mountShell() {
+  shell.topbar = el('header.topbar');
+  shell.banners = el('div.banners');
+  shell.summary = el('div.summary-slot');
+  shell.rail = el('div.rail');
+  shell.results = el('div.results');
+  shell.printFooter = el('div.print-footer-slot');
+  shell.tabbar = el('div.tabbar-slot');
 
+  replace($('#app'), [
+    el('div.app', {}, [
+      shell.topbar,
+      shell.banners,
+      shell.summary,
+      el('div.main', {}, [shell.rail, shell.results]),
+      el('footer.foot', {}, [
+        el('div', { text: 'JL 대출데스크 · 법무법인 제이엘' }),
+        el('div.tiny', { text: DISCLAIMER_SHORT }),
+      ]),
+      shell.printFooter,
+      shell.tabbar,
+    ]),
+  ]);
+}
+
+function render({ keepRail = false } = {}) {
   const input = store.get();
   let result;
   try {
@@ -184,83 +218,77 @@ function render() {
 
   const hasErrors = result.errors.length > 0;
 
-  const app = el('div.app', {}, [
-    topbar(result),
-    ...banners(),
-    installBar(),
-    hasErrors ? null : summaryStrip(result),
-    el('div.main', {}, [
-      el('div.rail', {}, [
-        borrowerPanel({ store, errors: result.errors, autoValues }),
-        collateralPanel({ store, ctx, errors: result.errors, autoValues }),
-        productPanel({ store }),
-        complexPanel({
-          store, ctx,
-          mine: myComplexes,
-          ...fold('panel-complex', true),
-          onEditComplex: editComplex,
-          onExportComplexes: exportComplexes,
-          onPickComplex: pickComplex,
-          onImportComplex: importComplexFile,
-          onClearComplex: clearComplex,
-          onTypeChange: changeType,
-          onConversionPreset: (d) => store.set('schedule.conversionDate', d),
-        }),
-        eligibilityPanel({
-          store,
-          open: ui.eligibilityOpen,
-          onToggle: (v) => { ui.eligibilityOpen = v; render(); },
-        }),
-        schedulePanel({ store }),
-        consultationPanel({ store, ...fold('panel-consultation', true) }),
-      ].filter(Boolean)),
-
-      el('div.results', {}, [
-        errorsPanel(result.errors),
-        hasErrors ? null : scriptPanel(result),
-        hasErrors ? null : limitPanel(result),
-        hasErrors ? null : productsPanel(result),
-        hasErrors ? null : fundsPanel(result),
-        hasErrors ? null : timelinePanel(result, fold('result-timeline', true)),
-        hasErrors ? null : scenarioPanel(result, fold('result-scenarios', true)),
-        hasErrors ? null : schedulePanelResult(result, {
-          monthly: ui.monthlySchedule,
-          onToggle: (v) => { ui.monthlySchedule = v; render(); },
-          fold: fold('result-schedule', true),
-        }),
-        warningsPanel(result),
-        disclaimerPanel(),
-      ].filter(Boolean)),
-    ]),
-    el('footer.foot', {}, [
-      el('div', { text: 'JL 대출데스크 · 법무법인 제이엘' }),
-      el('div.tiny', { text: DISCLAIMER_SHORT }),
-    ]),
-    printFooter(result),
-    tabbar(result),
-  ].filter(Boolean));
-
   document.body.dataset.tab = ui.tab;
   document.body.dataset.tools = ui.toolsOpen ? 'open' : 'closed';
   document.body.dataset.banner = ui.bannerOpen ? 'open' : 'closed';
 
-  replace($('#app'), [app]);
-
-  if (focusKey) {
-    const next = document.getElementById(focusKey);
-    if (next) {
-      next.focus();
-      if (selStart != null && next.setSelectionRange && next.type === 'text') {
-        try { next.setSelectionRange(selStart, selStart); } catch { /* number 입력 등은 무시 */ }
-      }
-    }
+  // 입력 중에는 상단바·배너도 건드리지 않는다(레이아웃이 흔들려 커서가 튄다)
+  if (!keepRail) {
+    replace(shell.topbar, topbarChildren(result));
+    replace(shell.banners, [...banners(), installBar()].filter(Boolean));
   }
+
+  replace(shell.summary, hasErrors ? [] : [summaryStrip(result)]);
+
+  if (!keepRail) {
+    replace(shell.rail, railPanels(result));
+  }
+
+  replace(shell.results, resultPanels(result, hasErrors));
+  replace(shell.printFooter, [printFooter(result)]);
+  replace(shell.tabbar, [tabbar(result)]);
+}
+
+function railPanels(result) {
+  return [
+    borrowerPanel({ store, errors: result.errors, autoValues }),
+    collateralPanel({ store, ctx, errors: result.errors, autoValues }),
+    productPanel({ store }),
+    complexPanel({
+      store, ctx,
+      mine: myComplexes,
+      ...fold('panel-complex', true),
+      onEditComplex: editComplex,
+      onExportComplexes: exportComplexes,
+      onPickComplex: pickComplex,
+      onImportComplex: importComplexFile,
+      onClearComplex: clearComplex,
+      onTypeChange: changeType,
+      onConversionPreset: (d) => store.set('schedule.conversionDate', d),
+    }),
+    eligibilityPanel({
+      store,
+      open: ui.eligibilityOpen,
+      onToggle: (v) => { ui.eligibilityOpen = v; render(); },
+    }),
+    schedulePanel({ store }),
+    consultationPanel({ store, ...fold('panel-consultation', true) }),
+  ].filter(Boolean);
+}
+
+function resultPanels(result, hasErrors) {
+  return [
+    errorsPanel(result.errors),
+    hasErrors ? null : scriptPanel(result),
+    hasErrors ? null : limitPanel(result),
+    hasErrors ? null : productsPanel(result),
+    hasErrors ? null : fundsPanel(result),
+    hasErrors ? null : timelinePanel(result, fold('result-timeline', true)),
+    hasErrors ? null : scenarioPanel(result, fold('result-scenarios', true)),
+    hasErrors ? null : schedulePanelResult(result, {
+      monthly: ui.monthlySchedule,
+      onToggle: (v) => { ui.monthlySchedule = v; render(); },
+      fold: fold('result-schedule', true),
+    }),
+    warningsPanel(result),
+    disclaimerPanel(),
+  ].filter(Boolean);
 }
 
 // ───────────────────────────── 상단 ─────────────────────────────
 
-function topbar(result) {
-  return el('header.topbar', {}, [
+function topbarChildren(result) {
+  return [
     el('div.brand', {}, [
       el('span.dot'),
       el('span', {}, ['JL 대출데스크 ', el('span.sub', { text: '법무법인 제이엘' })]),
@@ -289,7 +317,7 @@ function topbar(result) {
       el('button.btn.sm.primary', { type: 'button', text: '인쇄', onClick: () => window.print() }),
       el('button.btn.sm.danger', { type: 'button', text: '새 상담', onClick: resetAll }),
     ]),
-  ]);
+  ];
 }
 
 function banners() {

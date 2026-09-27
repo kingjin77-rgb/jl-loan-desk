@@ -102,19 +102,23 @@ export function parseKRW(input) {
   if (!s) return 0;
   if (/^-?\d+(\.\d+)?$/.test(s)) return won(Number(s));
 
-  const re = /(-?\d+(?:\.\d+)?)\s*(억|천만|백만|만|천)/g;
+  const re = /(-?\d+(?:\.\d+)?)\s*(억|천만|백만|만|천|백)/g;
   let total = 0;
   let matched = false;
+  let seenEok = false;   // 억이 먼저 나왔는가
   let m;
   while ((m = re.exec(s)) !== null) {
     matched = true;
     const n = Number(m[1]);
     switch (m[2]) {
-      case '억': total += n * 억; break;
+      case '억': total += n * 억; seenEok = true; break;
       case '천만': total += n * 1000 * 만; break;
       case '백만': total += n * 100 * 만; break;
       case '만': total += n * 만; break;
-      case '천': total += n * 1000; break;
+      // "3억8천" 의 8천은 8,000원이 아니라 8천만원이다.
+      // 억이 앞에 나왔으면 뒤따르는 천·백은 만 단위로 읽는다.
+      case '천': total += seenEok ? n * 1000 * 만 : n * 1000; break;
+      case '백': total += seenEok ? n * 100 * 만 : n * 100; break;
     }
   }
   if (!matched) {
@@ -137,4 +141,31 @@ export function parsePct(input) {
   const n = Number(s);
   if (!Number.isFinite(n)) return 0;
   return n >= 1 ? n / 100 : n;
+}
+
+
+/** 만원 단위 표시값. 380,000,000원 → 38000 */
+export function toManwon(won) {
+  if (!Number.isFinite(won)) return '';
+  return Math.round(won / 10_000);
+}
+
+/**
+ * 만원 단위 입력 해석.
+ *
+ * 상담사가 "5억" 처럼 단위를 붙여 치는 습관도 그대로 받아야 한다.
+ *   "38000"      → 38,000만원 = 380,000,000원
+ *   "3억8천"      → 380,000,000원   (단위를 쓰면 절대금액으로 본다)
+ *   "3억 8,000만" → 380,000,000원
+ */
+export function parseManwon(input) {
+  if (typeof input === 'number') return won(input * 10_000);
+  const s = String(input ?? '').replace(/[\s,]/g, '');
+  if (!s) return 0;
+
+  // 억·만·천 같은 단위가 붙어 있으면 절대금액으로 읽는다
+  if (/[억만천]/.test(s)) return parseKRW(s);
+
+  const n = Number(s.replace(/[^\d.-]/g, ''));
+  return Number.isFinite(n) ? won(n * 10_000) : 0;
 }
