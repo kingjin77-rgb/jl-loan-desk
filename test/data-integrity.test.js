@@ -122,4 +122,48 @@ if (isNode) {
       );
     }
   });
+
+  test('PWA: 설치에 필요한 파일이 전부 있다', () => {
+    const root = join(DATA, '..');
+    for (const f of [
+      'manifest.webmanifest', 'sw.js', '.nojekyll',
+      'assets/icons/icon-192.png', 'assets/icons/icon-512.png',
+      'assets/icons/icon-maskable-512.png', 'assets/icons/apple-touch-icon.png',
+    ]) {
+      assert.ok(existsSync(join(root, f)), `${f} 가 없습니다 — 홈 화면 설치가 안 됩니다`);
+    }
+  });
+
+  test('PWA: manifest 의 아이콘 경로가 실재한다', () => {
+    const root = join(DATA, '..');
+    const m = JSON.parse(readFileSync(join(root, 'manifest.webmanifest'), 'utf8'));
+    assert.ok(m.icons.length >= 2);
+    for (const i of m.icons) {
+      assert.ok(existsSync(join(root, i.src)), `manifest 가 가리키는 ${i.src} 가 없습니다`);
+    }
+    assert.ok(m.icons.some((i) => i.purpose === 'maskable'), '안드로이드 아이콘이 잘리지 않으려면 maskable 이 필요합니다');
+    assert.equal(m.start_url, './', 'Pages 하위 경로 배포에서는 상대 경로여야 합니다');
+    assert.equal(m.scope, './');
+  });
+
+  test('★ 서비스워커가 캐시하는 소스 모듈에 빠진 파일이 없다', () => {
+    // 하나라도 빠지면 오프라인에서 앱이 아예 뜨지 않는다.
+    const root = join(DATA, '..');
+    const sw = readFileSync(join(root, 'sw.js'), 'utf8');
+    const listed = new Set([...sw.matchAll(/'\.\/(src\/[^']+\.js)'/g)].map((m) => m[1]));
+
+    const actual = [];
+    const walk = (dir) => {
+      for (const f of readdirSync(join(root, dir), { withFileTypes: true })) {
+        if (f.isDirectory()) walk(`${dir}/${f.name}`);
+        else if (f.name.endsWith('.js')) actual.push(`${dir}/${f.name}`);
+      }
+    };
+    walk('src');
+
+    const missing = actual.filter((f) => !listed.has(f));
+    assert.equal(missing.length, 0,
+      `sw.js 의 캐시 목록에 빠진 모듈: ${missing.join(', ')}\n` +
+      `새 모듈을 추가했으면 sw.js 의 SHELL 에도 넣어야 오프라인에서 앱이 뜹니다.`);
+  });
 }

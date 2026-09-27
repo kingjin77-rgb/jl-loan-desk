@@ -13,7 +13,7 @@ import { derive } from './state/derive.js';
 import { toRecord, fromRecord, compareConfig } from './core/record.js';
 import * as storage from './io/storage.js';
 import { download, readFile, safeFilename } from './io/transfer.js';
-import { el, $, replace, select } from './ui/dom.js';
+import { el, $, replace, select, panel as panelOf } from './ui/dom.js';
 import { complexPanel, borrowerPanel, collateralPanel, productPanel, schedulePanel, consultationPanel, eligibilityPanel } from './ui/panels.js';
 import {
   summaryStrip, scriptPanel, limitPanel, scenarioPanel, schedulePanelResult,
@@ -24,7 +24,103 @@ import { expandYearMonth } from './core/dates.js';
 import { formatKRW } from './core/money.js';
 import { DISCLAIMER_SHORT, DISCLAIMER_FULL } from './ui/disclaimer.js';
 
-const ui = { monthlySchedule: false, bannerOpen: false, eligibilityOpen: false };
+const ui = {
+  monthlySchedule: false,
+  bannerOpen: false,
+  eligibilityOpen: false,
+  tab: 'input',        // 모바일 전용: input | result
+  toolsOpen: false,
+  // 모바일에서 기본으로 접어 둘 패널. 자주 안 여는 것부터.
+  // 모바일에서 기본으로 접어 둘 패널. 결과 탭이 4,000px 를 넘지 않게.
+  collapsed: {
+    'panel-consultation': true,
+    'result-schedule': true,
+    'result-scenarios': true,
+    'result-timeline': true,
+    'disclaimer': true,
+  },
+};
+
+function isMobile() { return window.matchMedia('(max-width:760px)').matches; }
+
+/**
+ * 홈 화면 설치.
+ *
+ * 안드로이드/크롬은 beforeinstallprompt 를 주므로 버튼 한 번으로 설치된다.
+ * iOS 사파리는 그 이벤트가 없어 "공유 → 홈 화면에 추가" 를 안내하는 수밖에 없다.
+ */
+const install = { event: null, dismissed: false };
+let online = navigator.onLine;
+
+// 규제 수치 도구에서 오프라인은 "낡은 값일 수 있음"을 뜻한다. 반드시 보여야 한다.
+window.addEventListener('online', () => { online = true; render(); });
+window.addEventListener('offline', () => { online = false; render(); });
+
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+}
+function isIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  install.event = e;
+  render();
+});
+window.addEventListener('appinstalled', () => {
+  install.event = null;
+  render();
+});
+
+async function doInstall() {
+  if (!install.event) return;
+  install.event.prompt();
+  await install.event.userChoice;
+  install.event = null;
+  render();
+}
+
+/** 설치 안내 줄. 이미 앱으로 열렸거나 닫았으면 안 보인다. */
+function installBar() {
+  if (isStandalone() || install.dismissed) return null;
+  if (!install.event && !isIOS()) return null;
+
+  const close = el('button.detail-toggle', {
+    type: 'button', text: '닫기',
+    onClick: () => { install.dismissed = true; render(); },
+  });
+
+  if (install.event) {
+    return el('div.banner.install', {}, [
+      el('span.msg', { text: '홈 화면에 설치하면 매번 주소를 열지 않아도 됩니다.' }),
+      el('button.btn.sm.primary', { type: 'button', text: '설치', onClick: doInstall }),
+      close,
+    ]);
+  }
+  // iOS
+  return el('div.banner.install', {}, [
+    el('span.msg', { text: '홈 화면에 추가: 아래 공유 버튼 → "홈 화면에 추가"' }),
+    close,
+  ]);
+}
+function collapsedOf(id, fallback = false) { return ui.collapsed[id] ?? fallback; }
+
+/** 모바일에서만 접기를 켠다. 데스크톱 상담 데스크는 다 보이는 편이 낫다. */
+function fold(id, defaultCollapsed = false) {
+  if (!isMobile()) return {};
+  return {
+    collapsible: true,
+    collapsed: collapsedOf(id, defaultCollapsed),
+    onToggle: () => toggleCollapse(id),
+  };
+}
+function toggleCollapse(id) {
+  ui.collapsed[id] = !collapsedOf(id);
+  render();
+}
 let ctx = null;
 let store = null;
 /** 단지에서 자동으로 채운 값들 — "되돌리기"의 원본 */
@@ -78,11 +174,13 @@ function render() {
   const app = el('div.app', {}, [
     topbar(result),
     ...banners(),
+    installBar(),
     hasErrors ? null : summaryStrip(result),
     el('div.main', {}, [
       el('div.rail', {}, [
         complexPanel({
           store, ctx,
+          ...fold('panel-complex', true),
           onPickComplex: pickComplex,
           onImportComplex: importComplexFile,
           onClearComplex: clearComplex,
@@ -98,7 +196,7 @@ function render() {
           onToggle: (v) => { ui.eligibilityOpen = v; render(); },
         }),
         schedulePanel({ store }),
-        consultationPanel({ store }),
+        consultationPanel({ store, ...fold('panel-consultation', true) }),
       ].filter(Boolean)),
 
       el('div.results', {}, [
@@ -107,11 +205,12 @@ function render() {
         hasErrors ? null : limitPanel(result),
         hasErrors ? null : productsPanel(result),
         hasErrors ? null : fundsPanel(result),
-        hasErrors ? null : timelinePanel(result),
-        hasErrors ? null : scenarioPanel(result),
+        hasErrors ? null : timelinePanel(result, fold('result-timeline', true)),
+        hasErrors ? null : scenarioPanel(result, fold('result-scenarios', true)),
         hasErrors ? null : schedulePanelResult(result, {
           monthly: ui.monthlySchedule,
           onToggle: (v) => { ui.monthlySchedule = v; render(); },
+          fold: fold('result-schedule', true),
         }),
         warningsPanel(result),
         disclaimerPanel(),
@@ -122,7 +221,12 @@ function render() {
       el('div.tiny', { text: DISCLAIMER_SHORT }),
     ]),
     printFooter(result),
+    tabbar(result),
   ].filter(Boolean));
+
+  document.body.dataset.tab = ui.tab;
+  document.body.dataset.tools = ui.toolsOpen ? 'open' : 'closed';
+  document.body.dataset.banner = ui.bannerOpen ? 'open' : 'closed';
 
   replace($('#app'), [app]);
 
@@ -146,6 +250,12 @@ function topbar(result) {
       el('span', {}, ['JL 대출데스크 ', el('span.sub', { text: '법무법인 제이엘' })]),
     ]),
     el('div.spacer'),
+    el('button.btn.sm.tools-toggle', {
+      type: 'button',
+      text: ui.toolsOpen ? '닫기' : '메뉴',
+      'aria-expanded': String(ui.toolsOpen),
+      onClick: () => { ui.toolsOpen = !ui.toolsOpen; render(); },
+    }),
     el('div.tools', {}, [
       select(
         ctx.profiles.map((p) => ({ value: p.key, label: p.label })),
@@ -172,14 +282,18 @@ function banners() {
 
   if (t.demo.length) {
     out.push(el('div.banner.danger', {}, [
-      el('b', { text: '⚠ 데모 수치로 계산 중입니다 — 실제 상담에 사용하지 마십시오. ' }),
-      `LTV·DSR·방공제 등 ${t.demo.length}개 설정이 가상의 값입니다.`,
+      el('span.msg', {}, [
+        el('b', { text: '⚠ 데모 수치 — 실제 상담 사용 금지. ' }),
+        `LTV·DSR·방공제 등 ${t.demo.length}개 설정이 가상의 값입니다.`,
+      ]),
       bannerToggle(),
     ]));
   } else if (t.unverified.length) {
     out.push(el('div.banner.warn', {}, [
-      el('b', { text: '미검증 설정값 사용 중. ' }),
-      `${t.unverified.join(', ')} 의 수치가 아직 원문으로 확인되지 않았습니다.`,
+      el('span.msg', {}, [
+        el('b', { text: '미검증 설정값 사용 중. ' }),
+        `${t.unverified.join(', ')} 의 수치가 아직 원문으로 확인되지 않았습니다.`,
+      ]),
       bannerToggle(),
     ]));
   }
@@ -198,14 +312,47 @@ function banners() {
     ]));
   }
 
+  if (!online) {
+    out.push(el('div.banner.warn', {}, [
+      el('span.msg', {}, [
+        el('b', { text: '오프라인입니다. ' }),
+        `기기에 저장된 설정(기준일 ${ctx.trust.oldest ?? '-'})으로 계산 중이며, 그 사이 규정이 바뀌었을 수 있습니다.`,
+      ]),
+    ]));
+  }
+
   out.push(el('div.banner.info', {}, [
-    `설정 기준일 ${ctx.trust.oldest ?? '-'} · 프로파일 「${ctx.profileLabel}」`,
+    el('span.msg', { text: `설정 기준일 ${ctx.trust.oldest ?? '-'} · 프로파일 「${ctx.profileLabel}」` }),
     ui.bannerOpen ? el('ul', {}, Object.entries(ctx.policies).map(([k, p]) =>
       el('li', { text: `${k}: 기준일 ${p.meta?.기준일 ?? '-'} · 출처 ${p.meta?.출처 || '(없음)'} · ${p.meta?.verified ? '검수완료' : '미검증'}` })
     )) : null,
   ].filter(Boolean)));
 
   return out;
+}
+
+/**
+ * 모바일 하단 탭바.
+ * 결과 탭에는 결론(부족자금/한도)을 배지로 붙여, 입력 중에도 상태가 보이게 한다.
+ */
+function tabbar(result) {
+  const hasProblem = result.janggeum ? result.janggeum.shortfall > 0
+    : result.limit.requestedAmount != null ? !result.limit.isSufficient : false;
+
+  const tab = (key, ico, label, badge) => el('button', {
+    type: 'button',
+    'aria-selected': String(ui.tab === key),
+    onClick: () => { ui.tab = key; window.scrollTo(0, 0); render(); },
+  }, [
+    el('span.ico', { text: ico }),
+    el('span', { text: label }),
+    badge ? el('span.dot') : null,
+  ].filter(Boolean));
+
+  return el('nav.tabbar', { 'aria-label': '화면 전환' }, [
+    tab('input', '⌨', '입력', false),
+    tab('result', '▤', '결과', hasProblem),
+  ]);
 }
 
 function bannerToggle() {
@@ -217,12 +364,9 @@ function bannerToggle() {
 }
 
 function disclaimerPanel() {
-  return el('section.panel', { id: 'disclaimer' }, [
-    el('header', {}, [el('h2', { text: '면책 고지' })]),
-    el('div.body', {}, [
-      el('div.script.small.muted', {}, DISCLAIMER_FULL.map((p) => el('p', { text: p }))),
-    ]),
-  ]);
+  return panelOf('면책 고지', [
+    el('div.script.small.muted', {}, DISCLAIMER_FULL.map((p) => el('p', { text: p }))),
+  ], { id: 'disclaimer', ...fold('disclaimer', true) });
 }
 
 function printFooter(result) {

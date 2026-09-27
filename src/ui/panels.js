@@ -6,6 +6,14 @@
  */
 
 import { el, panel, select, segmented } from './dom.js';
+
+/** 자주 쓰지 않는 입력을 접어 둔다. 기본은 닫힘. */
+function details(children, label = '상세 설정') {
+  return el('details.more', {}, [
+    el('summary', { text: label }),
+    el('div', { style: 'padding-top:8px' }, children.filter(Boolean)),
+  ]);
+}
 import { moneyField, pctField, intField, textField, dateField, selectField, segField, checkbox, editedChip, autoChip } from './fields.js';
 import { OPTIONS } from '../state/defaults.js';
 import { formatKRW, formatNumber } from '../core/money.js';
@@ -23,7 +31,7 @@ function chipFor(store, path, autoValues) {
 
 // ────────────────────────── 단지 ──────────────────────────
 
-export function complexPanel({ store, ctx, onPickComplex, onImportComplex, onClearComplex, onTypeChange, onConversionPreset }) {
+export function complexPanel({ store, ctx, onPickComplex, onImportComplex, onClearComplex, onTypeChange, onConversionPreset, collapsible = false, collapsed = false, onToggle = null }) {
   const s = store.get().schedule;
   const listed = ctx.complexIndex?.complexes ?? [];
 
@@ -48,7 +56,7 @@ export function complexPanel({ store, ctx, onPickComplex, onImportComplex, onCle
 
   if (!s.enabled) {
     body.push(el('p.tiny.faint', { text: '단지를 고르면 분양가·중도금 회차·입주지정기간이 자동으로 채워지고, 입주 시 부족자금까지 계산됩니다. 고르지 않으면 한도·월상환액만 계산합니다.' }));
-    return panel('단지', body, { id: 'panel-complex' });
+    return panel('단지', body, { id: 'panel-complex', collapsible, collapsed, onToggle });
   }
 
   const types = ctx.complexDoc?.unitTypes ?? [];
@@ -93,7 +101,7 @@ export function complexPanel({ store, ctx, onPickComplex, onImportComplex, onCle
   body.push(dateField('', s.conversionDate, (v) => store.set('schedule.conversionDate', v), { hint: '직접 지정' }));
 
   return panel(`단지 — ${s.complexName ?? ''}`, body, {
-    id: 'panel-complex',
+    id: 'panel-complex', collapsible, collapsed, onToggle,
     actions: el('button.btn.sm', { type: 'button', text: '해제', onClick: onClearComplex }),
   });
 }
@@ -139,9 +147,11 @@ export function borrowerPanel({ store, errors, autoValues }) {
       chip: chipFor(store, 'borrower.regionGrade', autoValues),
       error: err('ltv'),
     }),
-    segField('스트레스 적용', OPTIONS.stressRegion, b.stressRegion, (v) => store.set('borrower.stressRegion', v), {
-      hint: '스트레스 DSR 가산폭의 수도권/비수도권 구분',
-    }),
+    details([
+      segField('스트레스 적용', OPTIONS.stressRegion, b.stressRegion, (v) => store.set('borrower.stressRegion', v), {
+        hint: '스트레스 DSR 가산폭의 수도권/비수도권 구분',
+      }),
+    ]),
 
     el('div.field.field-wide', {}, [
       el('label', {}, ['기존 부채 ', el('span.tiny.faint', { text: '(종류 / 잔액 / 금리)' })]),
@@ -219,13 +229,16 @@ export function productPanel({ store }) {
       ]),
     ]),
     intField('거치기간', p.graceMonths, (v) => store.set('product.graceMonths', v || 0), { unit: '개월' }),
-    segField('금융권', OPTIONS.lenderTier, p.lenderTier, (v) => store.set('product.lenderTier', v)),
-    moneyField('희망 대출금액', p.requestedAmount, (v) => store.set('product.requestedAmount', v || null), {
-      hint: '입력하면 한도와 비교해 부족분을 알려줍니다', placeholder: '(선택)',
-    }),
-    moneyField('수기 상한', p.manualCap, (v) => store.set('product.manualCap', v || null), {
-      hint: '은행이 알려준 내부 한도 등', placeholder: '(선택)',
-    }),
+    // 자주 건드리지 않는 것은 접어 둔다 — 모바일에서 화면이 길어지는 주범이다
+    details([
+      segField('금융권', OPTIONS.lenderTier, p.lenderTier, (v) => store.set('product.lenderTier', v)),
+      moneyField('희망 대출금액', p.requestedAmount, (v) => store.set('product.requestedAmount', v || null), {
+        hint: '입력하면 한도와 비교해 부족분을 알려줍니다', placeholder: '(선택)',
+      }),
+      moneyField('수기 상한', p.manualCap, (v) => store.set('product.manualCap', v || null), {
+        hint: '은행이 알려준 내부 한도 등', placeholder: '(선택)',
+      }),
+    ]),
   ], { id: 'panel-product' });
 }
 
@@ -257,7 +270,7 @@ export function schedulePanel({ store }) {
 
 // ────────────────────────── 상담 정보 ──────────────────────────
 
-export function consultationPanel({ store }) {
+export function consultationPanel({ store, collapsible = false, collapsed = false, onToggle = null }) {
   const c = store.get().consultation;
   return panel('상담 정보', [
     textField('상담사', c.consultant, (v) => store.set('consultation.consultant', v)),
@@ -266,7 +279,7 @@ export function consultationPanel({ store }) {
       hint: '공용 PC에 기록이 남습니다. 실명 대신 이니셜을 쓰십시오.',
     }),
     dateField('상담일', c.date, (v) => store.set('consultation.date', v)),
-  ], { id: 'panel-consultation' });
+  ], { id: 'panel-consultation', collapsible, collapsed, onToggle });
 }
 
 

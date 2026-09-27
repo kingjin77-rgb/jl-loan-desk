@@ -71,9 +71,37 @@ export function field(label, control, { hint = null, unit = null, error = null, 
   return wrap;
 }
 
-export function panel(title, bodyChildren, { actions = null, flush = false, id = null } = {}) {
-  return el(`section.panel${flush ? ' flush' : ''}`, id ? { id } : {}, [
-    el('header', {}, [el('h2', { text: title }), el('div.spacer'), actions]),
+/**
+ * @param {object} [opts]
+ * @param {boolean} [opts.collapsible]  모바일에서 제목을 눌러 접을 수 있게 한다.
+ *   데스크톱에서는 CSS 가 접기를 무시한다 — 상담 데스크는 다 보이는 편이 낫다.
+ * @param {boolean} [opts.collapsed]
+ * @param {Function} [opts.onToggle]
+ */
+export function panel(title, bodyChildren, { actions = null, flush = false, id = null, collapsible = false, collapsed = false, onToggle = null } = {}) {
+  const cls = ['panel'];
+  if (flush) cls.push('flush');
+  if (collapsible) cls.push('collapsible');
+  if (collapsible && collapsed) cls.push('collapsed');
+
+  const header = el('header', {}, [el('h2', { text: title }), el('div.spacer'), actions]);
+  if (collapsible && onToggle) {
+    header.setAttribute('role', 'button');
+    header.setAttribute('tabindex', '0');
+    header.setAttribute('aria-expanded', String(!collapsed));
+    const fire = (e) => {
+      // 헤더 안의 버튼·셀렉트를 눌렀을 때는 접지 않는다
+      if (e.target.closest('button, select, input, label, a')) return;
+      onToggle(!collapsed);
+    };
+    header.addEventListener('click', fire);
+    header.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(!collapsed); }
+    });
+  }
+
+  return el(`section.${cls.join('.')}`, id ? { id } : {}, [
+    header,
     el('div.body', {}, bodyChildren),
   ]);
 }

@@ -132,7 +132,7 @@ export function limitPanel(r) {
 
 // ───────────────────────── 금리 시나리오 ─────────────────────────
 
-export function scenarioPanel(r) {
+export function scenarioPanel(r, fold = {}) {
   return panel('금리 시나리오', [
     scenarioChart(r),
     table([
@@ -142,12 +142,12 @@ export function scenarioPanel(r) {
       { key: 'deltaMonthly', label: '증가', num: true, render: (s) => (s.deltaMonthly ? `+${formatKRW(s.deltaMonthly)}` : '—') },
       { key: 'totalInterest', label: '총 이자', num: true, render: (s) => formatKRW(s.totalInterest) },
     ], r.scenarios, { rowClass: (s) => (s.label === '기준' ? 'bind' : '') }),
-  ].filter(Boolean), { id: 'result-scenarios' });
+  ].filter(Boolean), { id: 'result-scenarios', ...fold });
 }
 
 // ───────────────────────── 상환 스케줄 ─────────────────────────
 
-export function schedulePanelResult(r, { monthly = false, onToggle }) {
+export function schedulePanelResult(r, { monthly = false, onToggle, fold = {} }) {
   const yearCols = [
     { key: 'year', label: '연차', num: true },
     { key: 'payment', label: '연 상환액', num: true, render: (y) => formatKRW(y.payment) },
@@ -176,12 +176,12 @@ export function schedulePanelResult(r, { monthly = false, onToggle }) {
       table(cols, rows, { rowClass: (x) => (x.isGrace ? 'inapplicable' : '') }),
     ]),
     el('p.tiny.faint', { text: `총 ${r.payment.schedule.length}회차 · 총 이자 ${formatKRW(r.payment.totalInterest)}`, style: 'margin-top:8px' }),
-  ], { id: 'result-schedule', actions: toggle });
+  ], { id: 'result-schedule', actions: toggle, ...fold });
 }
 
 // ───────────────────────── 중도금 → 잔금 ─────────────────────────
 
-export function timelinePanel(r) {
+export function timelinePanel(r, fold = {}) {
   if (!r.timeline) return null;
   const total = r.timeline.totals.총분양대금 || 1;
 
@@ -211,7 +211,7 @@ export function timelinePanel(r) {
       text: `중도금대출 ${formatKRW(r.jungdogeum.totalDrawn)} · 후불이자 합계 ${formatKRW(r.jungdogeum.totalAccruedInterest)} (${r.jungdogeum.interestMode}, 잔금 기표일 ${formatKo(r.timeline.conversionDate)})`,
       style: 'margin-top:8px',
     }) : null,
-  ].filter(Boolean), { id: 'result-timeline' });
+  ].filter(Boolean), { id: 'result-timeline', ...fold });
 }
 
 export function fundsPanel(r) {

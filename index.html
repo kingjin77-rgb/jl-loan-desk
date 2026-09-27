@@ -7,6 +7,15 @@
 <meta name="description" content="법무법인 제이엘 상담사용 대출상담 프로그램. 단지별 분양가·중도금 회차·입주시기를 반영해 한도(LTV·DSR·방공제)와 월 상환액, 입주 시 필요자금을 계산합니다.">
 <meta name="robots" content="noindex">
 
+<!-- 설치형 앱(PWA) -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#156082">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="대출데스크">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23156082'/%3E%3Cpath d='M24 70V34m0 36h16M52 70V34h12a11 11 0 010 22H52' stroke='white' stroke-width='7' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css">
@@ -16,6 +25,7 @@
 <link rel="stylesheet" href="assets/css/components.css">
 <link rel="stylesheet" href="assets/css/tables.css">
 <link rel="stylesheet" href="assets/css/charts.css">
+<link rel="stylesheet" href="assets/css/mobile.css">
 <link rel="stylesheet" href="assets/css/print.css">
 </head>
 <body>
@@ -32,5 +42,15 @@
 </noscript>
 
 <script type="module" src="src/main.js"></script>
+<script>
+  // 서비스 워커 — 홈 화면 설치와 오프라인 계산을 위해. http(s) 에서만 동작한다.
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register(new URL('sw.js', location.href)).catch(() => {
+        // 등록에 실패해도 앱은 그대로 동작한다. 조용히 넘어간다.
+      });
+    });
+  }
+</script>
 </body>
 </html>
