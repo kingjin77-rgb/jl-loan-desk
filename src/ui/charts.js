@@ -154,7 +154,7 @@ export function limitChart(r) {
   }
 
   const svg = svgEl('svg', {
-    viewBox: `0 0 ${W} ${H}`, width: '100%', height: 'auto',
+    viewBox: `0 0 ${W} ${H}`, width: '100%',
     role: 'img',
     'aria-label': `한도 상한 비교. ${caps.map((c) => `${c.label} ${formatKRW(c.amount)}`).join(', ')}. ${r.limit.binding?.label}에서 막힘.`,
   }, g);
@@ -225,7 +225,7 @@ export function dsrChart(r) {
 
   return figure('DSR 여력 — 소득으로 감당 가능한 연간 상환액',
     svgEl('svg', {
-      viewBox: `0 0 ${W} ${H}`, width: '100%', height: 'auto', role: 'img',
+      viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img',
       'aria-label': `연소득 ${formatKRW(income)}의 DSR ${formatPct(rate, 0)}인 연 ${formatKRW(bucket)} 중 기존부채가 ${formatKRW(existing)}, 신규 여력이 ${formatKRW(fresh)}입니다.`,
     }, g));
 }
@@ -309,7 +309,7 @@ export function fundsChart(r) {
   }
 
   const svg = svgEl('svg', {
-    viewBox: `0 0 ${W} ${H}`, width: '100%', height: 'auto', role: 'img',
+    viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img',
     'aria-label': `입주 시 필요자금 ${formatKRW(need)}, 조달 ${formatKRW(g0.balanceLoanAmount + g0.ownFunds)}, ${g0.shortfall > 0 ? `부족 ${formatKRW(g0.shortfall)}` : '부족 없음'}.`,
   }, g);
 
@@ -406,7 +406,7 @@ export function timelineChart(r) {
     [`누적 납부 ${formatKRW(maxCum)} · 세로선 높이는 그 시점까지 낸 누계입니다`]));
 
   const svg = svgEl('svg', {
-    viewBox: `0 0 ${W} ${H}`, width: '100%', height: 'auto', role: 'img',
+    viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img',
     'aria-label': `납부 타임라인. ${formatKo(t0)}부터 ${formatKo(t1)}까지 ${events.length}회, 누적 ${formatKRW(maxCum)}.`,
   }, g);
 
@@ -460,7 +460,7 @@ export function scenarioChart(r) {
 
   return figure('금리가 오르면 월 상환액은',
     svgEl('svg', {
-      viewBox: `0 0 ${W} ${H}`, width: '100%', height: 'auto', role: 'img',
+      viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img',
       'aria-label': r.scenarios.map((s) => `${s.label} ${formatPct(s.rate)} 월 ${formatKRW(s.monthlyPayment)}`).join(', '),
     }, g),
     '대출금액은 고정하고 금리만 바꾼 비교입니다');

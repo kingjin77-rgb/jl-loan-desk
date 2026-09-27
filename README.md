@@ -13,11 +13,7 @@
 
 ## 여는 방법
 
-**배포본**: `https://jl-loan-desk.netlify.app/` (Netlify 연결 후)
-
-이 저장소는 **비공개**이므로 무료 GitHub Pages를 쓸 수 없습니다. Netlify에
-저장소를 연결해 배포합니다 — 소스는 비공개로 남고, push할 때마다 자동으로 갱신됩니다.
-연결 방법은 [배포](#배포)를 보십시오.
+**배포본**: `https://kingjin77-rgb.github.io/jl-loan-desk/`
 
 **내 컴퓨터에서**:
 ```bash
@@ -99,10 +95,9 @@ data/policy/ltv.2027-01-05.json   ← 새로 만듭니다
 
 ## 단지 데이터
 
-**실제 단지 데이터를 커밋하지 마십시오.**
-저장소는 비공개지만, **배포된 사이트는 주소를 아는 사람이면 누구나 열 수 있습니다**
-(무료 플랜에는 암호 기능이 없습니다). 저장소에 커밋한 단지 JSON은 사이트에서도
-그대로 내려받을 수 있으므로, 분양가·회차 일정·취급은행이 노출됩니다.
+**이 저장소는 공개(public)입니다. 실제 단지 데이터를 커밋하지 마십시오.**
+저장소와 배포된 사이트 양쪽에서 그대로 내려받을 수 있게 되어,
+분양가·회차 일정·취급은행이 인터넷에 공개됩니다.
 
 대신 화면의 **「파일 열기」**로 내 컴퓨터의 단지 JSON 을 불러와 씁니다.
 저장소에는 가상의 샘플 단지 하나와 템플릿만 둡니다.
@@ -123,27 +118,24 @@ data/policy/ltv.2027-01-05.json   ← 새로 만듭니다
 
 ## 배포
 
-저장소가 비공개라 무료 GitHub Pages는 쓸 수 없습니다. **Netlify에 저장소를 연결**합니다.
-빌드 과정이 없으므로 설정할 것이 거의 없습니다.
+GitHub Pages로 배포합니다. 빌드 과정이 없으므로 저장소를 그대로 서빙하면 됩니다.
 
-Netlify 프로젝트는 이미 만들어져 있습니다: https://app.netlify.com/projects/jl-loan-desk
+설정 (한 번만):
 
-연결 (한 번만):
+1. 저장소 → **Settings → Pages**
+2. **Source**: `Deploy from a branch`
+3. **Branch**: `main` / `/ (root)` → **Save**
 
-1. 위 주소 → **Project configuration → Build & deploy → Link repository**
-2. **GitHub** 선택 → 권한 승인 → `kingjin77-rgb/jl-loan-desk` 선택
-3. 빌드 설정은 **전부 비워 둡니다**:
-   - Build command: (비움)
-   - Publish directory: `.`
-4. Deploy
+1~2분 뒤 `https://kingjin77-rgb.github.io/jl-loan-desk/` 에서 열립니다.
+이후 `main` 에 push할 때마다 자동으로 갱신됩니다.
 
-이후로는 `main` 에 push할 때마다 자동으로 다시 배포됩니다.
+저장소 루트의 `.nojekyll` 이 Jekyll 처리를 끕니다(없으면 `_` 로 시작하는 파일이
+무시되어 `data/complexes/_index.json` 을 못 읽습니다). 지우지 마십시오.
 
 > **주의**: 배포된 사이트는 주소를 아는 사람이면 누구나 열 수 있습니다.
-> 무료 플랜에는 암호 기능이 없습니다. 사이트에 담기는 것은 앱 코드·규제 설정·가상
-> 샘플 단지뿐이고, 고객 정보는 상담사 브라우저에만 저장되므로 외부로 나가지 않습니다.
-> 암호를 걸어야 한다면 Netlify 유료 플랜의 Password protection 또는
-> Visitor access control 을 쓰십시오.
+> 사이트에 담기는 것은 앱 코드·규제 설정·가상 샘플 단지뿐이고,
+> 고객 정보는 상담사 브라우저에만 저장되어 외부로 나가지 않습니다.
+> 사내에서만 열리게 하려면 배포 대신 공유폴더에 두고 각자 로컬로 띄우십시오.
 
 ---
 
