@@ -6,7 +6,7 @@
  */
 
 import { evaluate, summarizeFailure } from './eligibility.js';
-import { productRate, productCap } from './products.js';
+import { productRate, productCap, termLimit } from './products.js';
 import { amortize, METHODS } from './amortize.js';
 import { won } from './money.js';
 
@@ -27,7 +27,6 @@ export function compareProducts(candidates, ctx, opts = {}) {
 
   const rows = (candidates ?? []).map((v) => {
     const elig = evaluate(v.eligibility, ctx);
-    const rate = productRate(v, ctx);
     const cap = productCap(v, ctx, { houseValue });
 
     // 상품 한도만이 아니라 다른 상한(LTV·DSR 등)과 함께 min 을 취해야
@@ -37,8 +36,15 @@ export function compareProducts(candidates, ctx, opts = {}) {
     const binding = applicable.find((c) => c.amount === amount) ?? null;
 
     // 상품이 정한 최대 만기가 더 짧으면 그쪽을 따른다.
-    const maxTerm = v.maxTermYears != null ? v.maxTermYears * 12 : termMonths;
+    // 만기별 요건(보금자리론 40·50년의 나이 제한)이 있으면 이 고객이 실제로
+    // 쓸 수 있는 만기까지만 줄인다 — 못 쓰는 만기로 계산하면 금리도 월상환액도 틀린다.
+    const tl = termLimit(v, ctx);
+    const maxTerm = tl.maxYears != null ? tl.maxYears * 12 : termMonths;
     const term = Math.min(termMonths, maxTerm);
+
+    // ★ 금리표는 (소득구간 × 만기) 격자다. 만기가 줄었으면 **줄어든 만기로** 조회해야
+    //   한다. 30년 금리로 20년 대출을 계산하면 금리가 높게 나온다.
+    const rate = productRate(v, { ...ctx, product: { ...(ctx.product ?? {}), termMonths: term } });
 
     // 상환방식: 화면에서 고른 방식을 그 상품이 지원하면 그대로, 아니면 **그 상품이
     // 지원하는 첫 방식**을 쓴다. 원리금균등으로 떨어뜨리면 만기일시 상품(전세자금)의
@@ -76,6 +82,7 @@ export function compareProducts(candidates, ctx, opts = {}) {
       binding,
       termMonths: term,
       termCapped: term < termMonths,
+      termBlocked: tl.blocked,
       method: usedMethod,
       methodSwapped: supported.length > 0 && !supported.includes(method),
       monthlyPayment: payment ? monthlyOf(payment, usedMethod) : null,

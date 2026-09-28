@@ -18,13 +18,27 @@ export function productsPanel(r) {
 
   const body = [];
 
+  // ★ 규제 한도가 비어 있으면 아래 「한도」는 상품 자체 한도일 뿐이다.
+  //   이걸 밝히지 않으면 상담사가 LTV·DSR 이 반영된 최종 한도로 오해한다.
+  if (r.limitBlocked) {
+    body.push(el('div.callout.danger', {}, [
+      el('div.script', {}, [
+        el('p', {}, [el('b', { text: '아래 「한도」는 상품 자체 한도일 뿐입니다 — 최종 한도가 아닙니다.' })]),
+        el('p', { text: 'LTV·DSR 등 규제 수치가 아직 채워지지 않아 규제 상한이 적용되지 않았습니다. '
+          + '금리·자격 판정은 상품 설정값으로 정상 계산됩니다.' }),
+      ]),
+    ]));
+  }
+
   // ── 추천 한 줄
   if (best) {
     const b = best.row;
     body.push(el('div.callout.ok', {}, [
       el('div.script', {}, [
         el('p', {}, [
-          el('b', { text: `${josa(b.name, '이/가')} 가장 유리합니다 — 금리 ${formatPct(b.rate)}, 한도 ${formatKRW(b.amount)}` }),
+          el('b', { text: r.limitBlocked
+            ? `${josa(b.name, '이/가')} 금리가 가장 낮습니다 — ${formatPct(b.rate)}`
+            : `${josa(b.name, '이/가')} 가장 유리합니다 — 금리 ${formatPct(b.rate)}, 한도 ${formatKRW(b.amount)}` }),
         ]),
         best.runnerUp && best.monthlyGap
           ? el('p', { text:
@@ -47,10 +61,7 @@ export function productsPanel(r) {
         el('div', {}, [el('b', { text: x.name })]),
         el('div.tiny.faint', { text: `${x.category}${x.kind === '전세' ? ' · 전세' : ''}` }),
       ]) },
-      { key: 'rate', label: '금리', num: true, render: (x) => x.rate != null ? el('div', {}, [
-        el('div', { text: formatPct(x.rate) }),
-        x.rateDetail?.totalDiscount ? el('div.tiny.faint', { text: `우대 −${formatPct(x.rateDetail.totalDiscount)}` }) : null,
-      ].filter(Boolean)) : '—' },
+      { key: 'rate', label: '금리', num: true, render: (x) => x.rate != null ? el('div', {}, rateNotes(x)) : '—' },
       { key: 'amount', label: '한도', num: true, render: (x) => el('div', {}, [
         el('div', { text: formatKRW(x.amount) }),
         x.binding ? el('div.tiny.faint', { text: `${x.binding.label}에서 막힘` }) : null,
@@ -65,7 +76,7 @@ export function productsPanel(r) {
         render: (x) => x.totalInterest != null ? formatKRW(x.totalInterest) : '—' },
       { key: 'termMonths', label: '기간', num: true, render: (x) => el('div', {}, [
         el('div', { text: `${Math.round(x.termMonths / 12)}년` }),
-        x.termCapped ? el('div.tiny.faint', { text: '상품 상한' }) : null,
+        x.termCapped ? el('div.tiny.faint', { text: termNote(x) }) : null,
       ].filter(Boolean)) },
     ], ok, { rowClass: (x) => (best && x === best.row ? 'bind' : '') })]));
   }
@@ -105,4 +116,51 @@ export function productsPanel(r) {
     '정책자금 상품은 취급 기관의 심사 기준과 예산 소진 여부에 따라 실제 취급이 달라질 수 있습니다.' }));
 
   return panel('정책자금 비교', body.filter(Boolean), { id: 'result-products' });
+}
+
+
+/**
+ * 금리 칸의 부연. 상담사가 "왜 이 금리인가"를 그 자리에서 말할 수 있어야 한다.
+ *
+ * 특히 **우대 상한에 걸렸다**는 사실이 보여야 한다. 안 보이면 고객이
+ * "우대항목을 더 채우면 더 내려가나요?" 라고 물을 때 답을 못 한다 — 안 내려간다.
+ */
+function rateNotes(x) {
+  const d = x.rateDetail ?? {};
+  const out = [el('div', { text: formatPct(x.rate) })];
+
+  if (d.appliedDiscount) {
+    out.push(el('div.tiny.faint', { text: `우대 −${formatPct(d.appliedDiscount)}` }));
+  }
+  if (d.discountCapApplied) {
+    out.push(el('div.tiny.warn', {
+      text: `우대 상한 ${formatPct(d.discountCap)} 적용 (합계 ${formatPct(d.rawDiscount)})`,
+      title: '우대항목을 더 채워도 이 상한 아래로는 내려가지 않습니다',
+    }));
+  }
+  for (const a of d.adjustments ?? []) {
+    if (!a.applied) continue;
+    out.push(el('div.tiny.faint', {
+      text: `${a.label} ${a.value < 0 ? '−' : '+'}${formatPct(Math.abs(a.value))}`,
+      title: '우대금리 합계 상한과 별개로 적용됩니다',
+    }));
+  }
+  if (d.floorApplied) out.push(el('div.tiny.faint', { text: `금리 하한 ${formatPct(d.floor)}` }));
+  if (d.manual) out.push(el('div.tiny.faint', { text: '화면의 약정금리' }));
+  const 미설정 = (d.discounts ?? []).filter((u) => u.unknown);
+  if (미설정.length) {
+    out.push(el('div.tiny.faint', {
+      text: `우대폭 미설정 ${미설정.length}건`,
+      title: 미설정.map((u) => u.label).join(', ') + ' — 우대폭이 확인되면 금리가 더 내려갈 수 있습니다',
+    }));
+  }
+  return out;
+}
+
+/** 기간이 줄어든 이유. 나이 때문에 막힌 것이면 그렇게 말한다. */
+function termNote(x) {
+  const blocked = x.termBlocked ?? [];
+  if (!blocked.length) return '상품 상한';
+  const 최장 = blocked.reduce((a, b) => (a.maxYears >= b.maxYears ? a : b));
+  return `${최장.label} 불가 — ${최장.reason}`;
 }

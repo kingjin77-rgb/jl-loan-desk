@@ -50,6 +50,9 @@ export function evaluate(rules, ctx) {
     // ("신혼부부 또는 다자녀" 에서 신혼으로 통과했다면 다자녀 미달은 사유가 아니다)
     failed: checks.filter((c) => !c.pass && !c.unknown && !c.inSatisfiedOr),
     unknown: checks.filter((c) => c.unknown && !c.inSatisfiedOr),
+    // 입력이 없어 판정하지 못한 항목. failed 에도 들어가지만, 호출부가
+    // "모르는 것"과 "안 되는 것"을 구분해야 할 때가 있다(만기별 나이요건 등).
+    notApplicable: checks.filter((c) => c.notApplicable && !c.inSatisfiedOr),
   };
 }
 

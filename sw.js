@@ -38,6 +38,7 @@ const SHELL = [
   './src/core/hangul.js',
   './src/core/invert.js',
   './src/core/janggeum.js',
+  './src/core/bunyangjeonhwan.js',
   './src/core/jungdogeum.js',
   './src/core/limit.js',
   './src/core/ltv.js',

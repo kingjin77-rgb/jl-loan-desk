@@ -9,7 +9,7 @@
 
 import { won, formatKRW, formatPct } from './money.js';
 import { makeCap, CAP_IDS } from './cap.js';
-import { evaluate } from './eligibility.js';
+import { evaluate, summarizeFailure } from './eligibility.js';
 
 /**
  * 금리표 조회.
@@ -48,12 +48,24 @@ export function baseRate(variant, ctx) {
 }
 
 /**
- * 최종 금리 = 기본금리 − 적용되는 우대금리 합, 단 하한(rateFloor) 미만으로는 못 내려간다.
- * @returns {{final:number|null, base:number|null, discounts:Array, floorApplied:boolean, reason?:string}}
+ * 최종 금리 = 기본금리 − 우대금리(상한 적용) + 별도조정, 단 하한 미만으로는 못 내려간다.
+ *
+ * ★ 우대금리에는 **합계 상한**이 있다. 항목을 다 더해서 상한을 넘기면 상한까지만 깎인다.
+ *   (디딤돌: 우대 합계 0.5%p, 다자녀 가구는 0.7%p — 상한 자체가 달라진다)
+ *   이걸 빼먹으면 우대항목을 많이 체크한 고객의 금리가 실제보다 낮게 나와
+ *   월 상환액을 과소 안내하게 된다.
+ *
+ * ★ 상한 **밖에서** 적용되는 조정이 따로 있다.
+ *   (디딤돌: 대상주택이 지방 소재면 0.2%p 인하 — "우대금리와 별개")
+ *   그래서 rateAdjustments 는 합계 상한을 거치지 않는다.
+ *
+ * @returns {{final, base, discounts, adjustments, discountCap, discountCapApplied, floorApplied}}
  */
 export function productRate(variant, ctx) {
   const b = baseRate(variant, ctx);
-  if (b.rate == null) return { final: null, base: null, discounts: [], floorApplied: false, reason: b.reason };
+  if (b.rate == null) {
+    return { final: null, base: null, discounts: [], adjustments: [], floorApplied: false, reason: b.reason };
+  }
 
   const discounts = [];
   for (const d of variant.rateDiscounts ?? []) {
@@ -65,23 +77,98 @@ export function productRate(variant, ctx) {
     discounts.push({ id: d.id, label: d.label ?? d.id, value: d.value, applied: ok });
   }
 
-  const total = discounts.filter((d) => d.applied).reduce((s, d) => s + d.value, 0);
-  let final = b.rate - total;
+  const rawDiscount = discounts.filter((d) => d.applied).reduce((s, d) => s + d.value, 0);
+
+  // 상한. discountCapWhen 의 조건을 만족하면 그쪽 상한으로 갈아탄다(더 큰 쪽이 아니라 **조건**이 기준).
+  let cap = variant.discountCap ?? null;
+  let capLabel = null;
+  for (const rule of variant.discountCapWhen ?? []) {
+    if (rule.value == null) continue;
+    if (rule.condition && !evaluate(rule.condition, ctx).eligible) continue;
+    cap = rule.value;
+    capLabel = rule.label ?? null;
+  }
+  const appliedDiscount = cap != null ? Math.min(rawDiscount, cap) : rawDiscount;
+  const discountCapApplied = cap != null && rawDiscount > cap;
+
+  // 상한 밖 조정(지방 소재 인하 등). 인하는 음수로 적는다.
+  const adjustments = [];
+  for (const a of variant.rateAdjustments ?? []) {
+    if (a.value == null) {
+      adjustments.push({ ...a, applied: false, unknown: true, note: '조정폭이 설정되지 않았습니다' });
+      continue;
+    }
+    const ok = a.condition ? evaluate(a.condition, ctx).eligible : true;
+    adjustments.push({ id: a.id, label: a.label ?? a.id, value: a.value, applied: ok });
+  }
+  const adjTotal = adjustments.filter((a) => a.applied).reduce((s, a) => s + a.value, 0);
+
+  let final = b.rate - appliedDiscount + adjTotal;
 
   const floor = variant.rateFloor;
   const floorApplied = floor != null && final < floor;
   if (floorApplied) final = floor;
 
   return {
-    final,
+    final: round6(final),
     base: b.rate,
     band: b.band,
     term: b.term,
-    totalDiscount: b.rate - final,
+    rawDiscount: round6(rawDiscount),
+    appliedDiscount: round6(appliedDiscount),
+    discountCap: cap,
+    discountCapLabel: capLabel,
+    discountCapApplied,
+    adjustments,
+    adjustmentTotal: round6(adjTotal),
+    totalDiscount: round6(b.rate - final),
     discounts,
     floorApplied,
     floor,
   };
+}
+
+/**
+ * 만기별 자격. 같은 상품인데 **만기에 따라 요건이 다른** 경우가 있다.
+ *   보금자리론 40년 만기: 만 39세 이하(또는 만 49세 이하 신혼)
+ *   보금자리론 50년 만기: 만 34세 이하(또는 만 39세 이하 신혼)
+ * 이 고객이 실제로 쓸 수 있는 최장 만기를 돌려준다. 요건을 모르면(null) 막지 않는다.
+ *
+ * @returns {{maxYears:number|null, blocked:Array<{maxYears, label, reason}>}}
+ */
+export function termLimit(variant, ctx) {
+  const rules = variant.termRules ?? [];
+  if (!rules.length) return { maxYears: variant.maxTermYears ?? null, blocked: [] };
+
+  let maxYears = null;
+  const blocked = [];
+  for (const r of rules) {
+    if (r.maxYears == null) continue;
+    const res = r.eligibility ? evaluate(r.eligibility, ctx) : { eligible: true, unknown: [] };
+    // 모른다고 탈락시키면 상담이 멈춘다 — 나이를 아직 안 물어봤다는 이유로
+    // 40·50년 만기를 지워 버리면 안 된다.
+    //
+    // 다만 "모름"과 "안 됨"을 섞으면 안 된다. or 가지 안에 입력이 없는 항목이
+    // 하나 있다는 이유로, 같은 규칙의 다른 항목이 **확실히 미달**인 것을 덮으면
+    // 만 37세에게 50년 만기를 열어 주게 된다.
+    // 그래서 확정된 실패(입력이 있는데 미달)가 하나라도 있으면 막는다.
+    const 확정실패 = (res.failed ?? []).filter((c) => !c.notApplicable && !c.unknown);
+    if (res.eligible || 확정실패.length === 0) {
+      if (maxYears == null || r.maxYears > maxYears) maxYears = r.maxYears;
+    } else {
+      blocked.push({
+        maxYears: r.maxYears,
+        label: r.label ?? `${r.maxYears}년 만기`,
+        reason: summarizeFailure({ ...res, failed: 확정실패 }),
+      });
+    }
+  }
+  if (maxYears == null) maxYears = variant.maxTermYears ?? null;
+  return { maxYears, blocked };
+}
+
+function round6(n) {
+  return Number.isFinite(n) ? Math.round(n * 1e6) / 1e6 : n;
 }
 
 /**
@@ -99,7 +186,9 @@ export function productCap(variant, ctx, { houseValue = 0 } = {}) {
   if (variant.limit?.ltvOverride != null && houseValue > 0) {
     caps.push({
       amount: won(houseValue * variant.limit.ltvOverride),
-      why: `상품 LTV ${formatPct(variant.limit.ltvOverride, 0)} × ${formatKRW(houseValue)}`,
+      // ★ 무엇의 70%인지가 상품마다 다르다(디딤돌=공시가격, 보금자리론=분양가).
+      //   상담사가 담보가액 칸에 무엇을 넣어야 하는지 알아야 하므로 기준을 같이 적는다.
+      why: `상품 LTV ${formatPct(variant.limit.ltvOverride, 0)} × ${variant.limit.ltvBase ?? '담보가액'} ${formatKRW(houseValue)}`,
     });
   }
   if (variant.limit?.depositRatio != null) {

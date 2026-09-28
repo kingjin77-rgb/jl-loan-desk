@@ -41,10 +41,18 @@
 </table>
 
 <script type="module">
+  // node --test 와 **같은 파일**을 돌립니다. 새 테스트 파일을 만들면 여기에도 넣으십시오 —
+  // 빠지면 사무실 PC에서 "전부 통과"로 보이는데 실제로는 그 검사를 안 한 것입니다.
   import './amortize.test.js';
   import './limit.test.js';
   import './timeline.test.js';
   import './hangul.test.js';
+  import './eligibility.test.js';
+  import './products.test.js';
+  import './complex-builder.test.js';
+  import './manwon.test.js';
+  import './bunyangjeonhwan.test.js';
+  import './rate-cap.test.js';
   // data-integrity.test.js 는 data/ 폴더를 파일시스템으로 읽으므로 node 에서만 돕니다.
   // 브라우저에서는 그 검사가 빠지고, 그만큼 항목 수가 적게 나옵니다.
 </script>

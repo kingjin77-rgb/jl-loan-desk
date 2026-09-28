@@ -24,6 +24,9 @@ import { jungdogeumPlan } from '../core/jungdogeum.js';
 import { janggeumPlan } from '../core/janggeum.js';
 import { won, formatKRW } from '../core/money.js';
 import { flattenProducts } from '../core/products.js';
+import {
+  fundsNeeded, installmentCap, deferredBalance, deferredInterest, lhVerification,
+} from '../core/bunyangjeonhwan.js';
 import { compareProducts, bestPick } from '../core/compare.js';
 
 /**
@@ -58,7 +61,7 @@ export function derive(input, policies, opts = {}) {
       policies.bangongje
     );
   } catch (e) {
-    if (e instanceof BangongjeRegionError) errors.push({ field: 'bangongjeRegion', message: e.message });
+    if (e instanceof BangongjeRegionError) errors.push({ field: 'bangongjeRegion', message: e.message, blocks: 'limit' });
     else throw e;
   }
   const deductions = deduction ? [deduction] : [];
@@ -87,7 +90,10 @@ export function derive(input, policies, opts = {}) {
       deductions,
     }, policies.ltv));
   } catch (e) {
-    if (e instanceof LtvRuleNotFoundError) errors.push({ field: 'ltv', message: e.message });
+    // ★ 이 오류는 **한도**를 막을 뿐이다. 상품 금리 비교와 분양전환 계산은
+    //   LTV 를 쓰지 않으므로 계속 보여 준다 — 규제수치를 아직 못 채웠다는 이유로
+    //   이미 확인된 상품 금리표까지 못 보게 되면 프로그램을 쓸 수가 없다.
+    if (e instanceof LtvRuleNotFoundError) errors.push({ field: 'ltv', message: e.message, blocks: 'limit' });
     else throw e;
   }
 
@@ -214,6 +220,10 @@ export function derive(input, policies, opts = {}) {
       house: {
         price: houseValue,
         areaSqm: input.collateral.areaSqm,
+        // 디딤돌 「지방 소재 0.2%p 인하」 판정용. 새 입력을 만들지 않고
+        // 이미 있는 스트레스금리 지역구분을 그대로 쓴다 — 상담사가 같은 것을
+        // 두 번 입력하게 하면 두 값이 어긋난다.
+        isMetro: (input.borrower.stressRegion ?? '수도권') === '수도권',
       },
       lease: input.lease ?? {},
       product: input.product,
@@ -255,6 +265,82 @@ export function derive(input, policies, opts = {}) {
     products = { rows, best: bestPick(rows) };
   }
 
+  // ── 10-b) 분양전환 (민간임대 → 분양전환)
+  //    일반 매매와 별개 경로다. 규제 한도(LTV·DSR)와 섞지 않는다 —
+  //    잔금유예는 대출이 아니라 매도인(사업시행자)에 대한 미납 잔금이다.
+  let conversion = null;
+  const conv = input.conversion;
+  if (conv?.enabled) {
+    const rules = policies.bunyangjeonhwan ?? null;
+    const 최소잔금유예금 = conv.타입 != null
+      ? rules?.분할납부?.타입별최소잔금유예금?.[String(conv.타입)] ?? null
+      : null;
+    const 총액상한 = rules?.분할납부?.총액상한 ?? null;
+
+    const funds = fundsNeeded(conv);
+    const cap = installmentCap({ 주택가격: conv.분양가, 최소잔금유예금, 총액상한 });
+
+    // 상담사가 분할납부액을 비워 두면 「가능한 최대」로 본다.
+    const 분할납부액 = conv.분할납부액 != null
+      ? conv.분할납부액
+      : (cap.최대분할납부액 ?? 0);
+    const balance = deferredBalance({ 주택가격: conv.분양가, 분할납부액, 최소잔금유예금 });
+
+    // 금리는 정책 파일 → 상담사 입력 순으로 찾는다. 둘 다 없으면 이자를 내지 않는다.
+    const 금리 = conv.잔금유예금리 ?? rules?.잔금유예?.이자?.연이자율 ?? null;
+    // ★ 이자가 붙는 것은 **잔금유예금**이다(10년 뒤로 미루는 돈).
+    //   분할납부액은 지금 정리하는 돈이므로 이자가 붙지 않는다.
+    //   상담일지 84타입 예시로 검산: 분할납부 2억, 잔금유예 7,500만 → 이자는 7,500만에 붙는다.
+    //   분할납부액에 붙이면 2.7배 과대계상된다.
+    const interest = deferredInterest({
+      원금: balance.잔금유예금,
+      annualRate: 금리,
+      계약일: conv.계약일,
+      청산일: conv.청산일,
+      만기년: rules?.잔금유예?.만기년 ?? 10,
+      일부상환: conv.일부상환 ?? [],
+      일수기준: rules?.잔금유예?.이자?.일수기준 ?? 365,
+    });
+
+    const lh = lhVerification(
+      {
+        자산가액: conv.자산가액 || null,
+        자동차가액: conv.자동차가액 || null,
+        월소득: conv.월소득 || null,
+        가구원수: conv.가구원수,
+        국가유공자: conv.국가유공자,
+      },
+      rules?.LH검증 ?? {}
+    );
+
+    // 지금 실제로 마련해야 하는 현금.
+    //
+    //  일시납  : 필요자금 그대로 (A − B + C − D)
+    //  분할납부: 분할납부액에서 이미 낸 보증금을 빼고, 상환해야 하는 보증금대출을 더한다
+    //            → 분할납부액 − B + C − D
+    //
+    // 상담일지 84타입 예시로 검산된다:
+    //   분양가 2억7,500만, 납입보증금 1억7,000만, 분할납부 2억
+    //   → 지금 필요액 = 2억 − 1억7,000만 = 3,000만  ← 상담일지의 「계약금 3천만원」과 일치
+    //   → 잔금유예금 = 2억7,500만 − 2억 = 7,500만  ← 「최소 잔금유예금 75,000,000원」과 일치
+    const 분할납부시필요액 = Math.max(0,
+      분할납부액 - won(conv.납입보증금 ?? 0) + won(conv.보증금대출 ?? 0) - won(conv.본인준비금 ?? 0));
+
+    conversion = {
+      funds, cap, balance, interest, lh,
+      분할납부액,
+      분할납부액자동: conv.분할납부액 == null,
+      일시납필요액: funds.필요자금,
+      분할납부시필요액,
+      최소잔금유예금,
+      금리출처: conv.잔금유예금리 != null ? '상담사 입력'
+        : rules?.잔금유예?.이자?.연이자율 != null ? (rules?.meta?.demo ? '데모 가상값' : '정책 파일')
+        : null,
+      source: rules?.meta ? { file: rules.meta.id, 기준일: rules.meta.기준일, verified: Boolean(rules.meta.verified), demo: Boolean(rules.meta.demo) } : null,
+      warnings: [...cap.warnings, ...balance.warnings, ...(rules ? [] : ['분양전환 설정 파일이 없습니다 — 타입별 최소 잔금유예금과 LH 검증 기준을 계산할 수 없습니다'])],
+    };
+  }
+
   // ── 11) 문장
   const narrative = buildNarrative(limit, { levers });
   const paymentLine = paymentNarrative(payment, amortInput);
@@ -263,6 +349,14 @@ export function derive(input, policies, opts = {}) {
   result.stress = stress;
   result.deductions = deductions;
   result.limit = limit;
+  result.conversion = conversion;
+  // 규제 상한 중 값이 없어 적용되지 못한 것. 상품 비교표가 "상품 한도일 뿐"이라고
+  // 밝히는 데 쓴다.
+  result.capsMissing = [
+    ...(errors.filter((e) => e.blocks === 'limit').map((e) => e.field)),
+    ...caps.filter((c) => !c.applicable).map((c) => c.label),
+  ];
+  result.limitBlocked = errors.some((e) => e.blocks === 'limit');
   result.levers = levers;
   result.loanAmount = loanAmount;
   result.payment = payment;

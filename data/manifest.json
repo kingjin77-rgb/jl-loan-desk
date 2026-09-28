@@ -13,20 +13,22 @@
   "defaultProfile": "데모",
   "profiles": {
     "실무": {
-      "label": "실무 (값 미입력)",
+      "label": "실무 (일부 입력 — 규제수치 미입력)",
       "policy": {
         "ltv": "policy/ltv.2026-09-19.json",
         "dsr": "policy/dsr.2026-09-19.json",
         "stress": "policy/stress.2026-09-19.json",
         "bangongje": "policy/bangongje.2026-09-19.json",
         "regions": "policy/regions.2026-09-19.json",
-        "mci": "policy/mci.2026-09-19.json"
+        "mci": "policy/mci.2026-09-19.json",
+        "bunyangjeonhwan": "policy/bunyangjeonhwan.2026-09-28.json"
       },
       "products": [
         "products/general-mortgage.2026-09-19.json",
-        "products/didimdol.2026-09-19.json",
-        "products/bogeumjari.2026-09-19.json",
-        "products/beotimmok.2026-09-19.json"
+        "products/didimdol.2026-09-28.json",
+        "products/bogeumjari.2026-09-28.json",
+        "products/gigeum-seunggye.2026-09-28.json",
+        "products/beotimmok.2026-09-28.json"
       ]
     },
     "데모": {
@@ -37,7 +39,8 @@
         "stress": "policy/demo/stress.demo.json",
         "bangongje": "policy/demo/bangongje.demo.json",
         "regions": "policy/demo/regions.demo.json",
-        "mci": "policy/demo/mci.demo.json"
+        "mci": "policy/demo/mci.demo.json",
+        "bunyangjeonhwan": "policy/demo/bunyangjeonhwan.demo.json"
       },
       "products": [
         "products/demo/general-mortgage.demo.json",

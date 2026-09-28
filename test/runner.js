@@ -37,6 +37,27 @@ export const assert = Object.assign(
         throw new AssertionError(msg || `예외 종류가 다릅니다: ${threw.name}`);
       }
     },
+    // node:assert 와 같은 모양을 유지해야 한다. 여기 없는 메서드를 테스트가 쓰면
+    // node 에서는 통과하고 브라우저에서만 "is not a function" 으로 터진다.
+    match(value, re, msg) {
+      if (!re.test(String(value))) {
+        throw new AssertionError(msg || `${fmt(value)} 이(가) ${re} 와 일치하지 않습니다`);
+      }
+    },
+    doesNotMatch(value, re, msg) {
+      if (re.test(String(value))) {
+        throw new AssertionError(msg || `${fmt(value)} 이(가) ${re} 와 일치합니다`);
+      }
+    },
+    notDeepEqual(a, b, msg) {
+      if (JSON.stringify(a) === JSON.stringify(b)) throw new AssertionError(msg || `${fmt(a)} 이(가) 같습니다`);
+    },
+    deepStrictEqual(a, b, msg) {
+      if (JSON.stringify(a) !== JSON.stringify(b)) throw new AssertionError(msg || `${fmt(a)} !== ${fmt(b)}`);
+    },
+    strictEqual(a, b, msg) {
+      if (!Object.is(a, b)) throw new AssertionError(msg || `${fmt(a)} !== ${fmt(b)}`);
+    },
     fail(msg) { throw new AssertionError(msg || '실패'); },
   }
 );

@@ -166,4 +166,79 @@ if (isNode) {
       `sw.js 의 캐시 목록에 빠진 모듈: ${missing.join(', ')}\n` +
       `새 모듈을 추가했으면 sw.js 의 SHELL 에도 넣어야 오프라인에서 앱이 뜹니다.`);
   });
+
+  // ── 분양전환 설정: 상담일지 안에서 서로 맞아떨어지는지 검사한다.
+  //    값이 바뀌어도(다른 단지·다른 사업장) 이 관계는 유지되어야 한다.
+  test('★ 분양전환: 타입별 최소주택가격 = 총액상한 + 최소잔금유예금', () => {
+    for (const rel of ['policy/bunyangjeonhwan.2026-09-28.json', 'policy/demo/bunyangjeonhwan.demo.json']) {
+      const f = join(DATA, rel);
+      if (!existsSync(f)) continue;
+      const d = JSON.parse(readFileSync(f, 'utf8'));
+      const 상한 = d.분할납부?.총액상한;
+      const 최소 = d.분할납부?.타입별최소잔금유예금 ?? {};
+      const 최소주택가격 = d.분할납부?._타입별최소주택가격 ?? {};
+      assert.ok(상한 > 0, `${rel}: 분할납부.총액상한 이 없습니다`);
+      for (const [타입, v] of Object.entries(최소)) {
+        const 기대 = 상한 + v;
+        const 적힌값 = 최소주택가격[타입];
+        assert.equal(적힌값, 기대,
+          `${rel} ${타입}타입: 최소주택가격이 ${적힌값} 로 적혀 있지만 ` +
+          `총액상한(${상한}) + 최소잔금유예금(${v}) = ${기대} 이어야 합니다`);
+      }
+    }
+  });
+
+  test('분양전환: LH 검증 월소득 기준은 가구원수가 늘수록 커진다', () => {
+    const f = join(DATA, 'policy/bunyangjeonhwan.2026-09-28.json');
+    const d = JSON.parse(readFileSync(f, 'utf8'));
+    const 소득 = d.LH검증?.월소득 ?? {};
+    const keys = Object.keys(소득).map(Number).sort((a, b) => a - b);
+    assert.ok(keys.length >= 2, 'LH검증.월소득 기준이 비어 있습니다');
+    for (let i = 1; i < keys.length; i++) {
+      assert.ok(소득[keys[i]] > 소득[keys[i - 1]],
+        `${keys[i]}인 기준(${소득[keys[i]]})이 ${keys[i - 1]}인 기준(${소득[keys[i - 1]]})보다 작습니다`);
+    }
+  });
+
+  test('★ 금리표: 만기가 길수록 금리가 낮아지지 않는다 (행이 밀려 들어간 것을 잡는다)', () => {
+    // 금리표를 옮겨 적을 때 행·열을 바꿔 넣는 실수가 가장 흔하다.
+    // 기금·정책 상품은 만기가 길수록 금리가 같거나 높다.
+    for (const rel of readdirSync(join(DATA, 'products')).filter((f) => f.endsWith('.json') && f !== '_index.json')) {
+      const d = JSON.parse(readFileSync(join(DATA, 'products', rel), 'utf8'));
+      for (const v of d.variants ?? []) {
+        const t = v.rateTable;
+        if (!t?.matrix?.length) continue;
+        t.matrix.forEach((row, ri) => {
+          for (let i = 1; i < row.length; i++) {
+            if (row[i] == null || row[i - 1] == null) continue;
+            assert.ok(row[i] >= row[i - 1],
+              `${rel} ${v.variantId} ${ri}행: ${t.termYears?.[i]}년 금리(${row[i]})가 ` +
+              `${t.termYears?.[i - 1]}년(${row[i - 1]})보다 낮습니다`);
+          }
+        });
+        // 소득이 높을수록 금리가 낮아지지도 않는다
+        for (let ri = 1; ri < t.matrix.length; ri++) {
+          const a = t.matrix[ri - 1], b = t.matrix[ri];
+          for (let i = 0; i < Math.min(a.length, b.length); i++) {
+            if (a[i] == null || b[i] == null) continue;
+            assert.ok(b[i] >= a[i],
+              `${rel} ${v.variantId}: 소득구간 ${ri} 의 ${t.termYears?.[i]}년 금리가 아래 구간보다 낮습니다`);
+          }
+        }
+      }
+    }
+  });
+
+  test('우대금리 상한은 개별 우대폭 합계보다 작거나 같아야 의미가 있다', () => {
+    for (const rel of readdirSync(join(DATA, 'products')).filter((f) => f.endsWith('.json') && f !== '_index.json')) {
+      const d = JSON.parse(readFileSync(join(DATA, 'products', rel), 'utf8'));
+      for (const v of d.variants ?? []) {
+        if (v.discountCap == null) continue;
+        assert.ok(v.discountCap > 0, `${rel} ${v.variantId}: discountCap 이 0 이하입니다`);
+        for (const r of v.discountCapWhen ?? []) {
+          assert.ok(r.value > 0 && r.condition, `${rel} ${v.variantId}: discountCapWhen 에 값이나 조건이 없습니다`);
+        }
+      }
+    }
+  });
 }

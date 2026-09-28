@@ -134,3 +134,15 @@ dialog.editor footer .err:empty{display:none;}
 
 /* 비어 있는 되읽기 줄은 공간을 차지하지 않는다 */
 .field .hint:empty{display:none;}
+
+/* 우대금리 상한처럼 "여기서 막혔다"를 표 안에서 알려야 하는 작은 주석.
+   경고 배너를 쓰면 표가 무너지므로 글자색만 바꾼다. */
+.tiny.warn { color: var(--warn); }
+
+/* 분양전환 결과의 소제목 — 상담일지의 ①②③④ 를 그대로 따른다. */
+h3.sub {
+  margin: 16px 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-sub);
+}

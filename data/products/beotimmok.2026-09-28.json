@@ -1,0 +1,238 @@
+{
+  "meta": {
+    "id": "beotimmok",
+    "기준일": "2026-09-28",
+    "출처": "법무법인 제이엘 「분양전환 상담일지」(NHF) — 사내 상담자료",
+    "출처URL": "",
+    "verified": false,
+    "작성자": "미검수",
+    "비고": [
+      "★ 상담일지에서 확인된 것은 「버팀목대출 — 부부합산소득 5천만원 이하」 한 줄뿐입니다.",
+      "일반 버팀목의 소득 상한만 채웠고, 보증금 상한·한도·금리표·청년/신혼/신생아 유형은 여전히 비어 있습니다.",
+      "소득 5천만원을 넘으면 상담일지 지침대로 은행 전세자금대출(대출상담사 접수)로 안내합니다."
+    ]
+  },
+  "_확인필요": [
+    "임차보증금 상한과 전용면적 요건",
+    "대출한도와 보증금 대비 비율",
+    "금리표와 우대금리",
+    "대출기간·연장 조건",
+    "청년·신혼·신생아 유형의 소득·연령 요건",
+    "순자산 기준"
+  ],
+  "productId": "beotimmok",
+  "name": "버팀목 전세자금대출",
+  "category": "기금",
+  "kind": "전세",
+  "variants": [
+    {
+      "variantId": "beotimmok-general",
+      "name": "버팀목 일반",
+      "eligibility": {
+        "and": [
+          {
+            "path": "borrower.ownedHouses",
+            "op": "eq",
+            "value": 0,
+            "label": "무주택"
+          },
+          {
+            "path": "borrower.annualIncomeCombined",
+            "op": "lte",
+            "value": 50000000,
+            "label": "부부합산 연소득",
+            "unit": "원",
+            "_출처": "상담일지: 버팀목대출 (부부합산소득 5천만원 이하)"
+          },
+          {
+            "path": "borrower.netAssets",
+            "op": "lte",
+            "value": null,
+            "label": "순자산",
+            "unit": "원"
+          },
+          {
+            "path": "lease.deposit",
+            "op": "lte",
+            "value": null,
+            "label": "임차보증금",
+            "unit": "원"
+          },
+          {
+            "path": "lease.areaSqm",
+            "op": "lte",
+            "value": null,
+            "label": "전용면적",
+            "unit": "㎡"
+          }
+        ]
+      },
+      "limit": {
+        "max": null,
+        "depositRatio": null
+      },
+      "rateTable": {
+        "incomeBands": [],
+        "termYears": [],
+        "matrix": [],
+        "incomePath": "borrower.annualIncomeCombined",
+        "termPath": "product.termMonths"
+      },
+      "rateDiscounts": [],
+      "rateFloor": null,
+      "maxTermYears": null,
+      "repaymentMethods": [
+        "만기일시"
+      ]
+    },
+    {
+      "variantId": "beotimmok-youth",
+      "name": "청년 버팀목",
+      "eligibility": {
+        "and": [
+          {
+            "path": "borrower.ownedHouses",
+            "op": "eq",
+            "value": 0,
+            "label": "무주택"
+          },
+          {
+            "path": "borrower.age",
+            "op": "lte",
+            "value": null,
+            "label": "연령",
+            "unit": "세"
+          },
+          {
+            "path": "borrower.annualIncomeCombined",
+            "op": "lte",
+            "value": null,
+            "label": "연소득",
+            "unit": "원"
+          },
+          {
+            "path": "lease.deposit",
+            "op": "lte",
+            "value": null,
+            "label": "임차보증금",
+            "unit": "원"
+          }
+        ]
+      },
+      "limit": {
+        "max": null,
+        "depositRatio": null
+      },
+      "rateTable": {
+        "incomeBands": [],
+        "termYears": [],
+        "matrix": []
+      },
+      "rateDiscounts": [],
+      "rateFloor": null,
+      "maxTermYears": null,
+      "repaymentMethods": [
+        "만기일시"
+      ]
+    },
+    {
+      "variantId": "beotimmok-newlywed",
+      "name": "신혼부부 전용 버팀목",
+      "eligibility": {
+        "and": [
+          {
+            "path": "borrower.ownedHouses",
+            "op": "eq",
+            "value": 0,
+            "label": "무주택"
+          },
+          {
+            "path": "borrower.isNewlywed",
+            "op": "eq",
+            "value": true,
+            "label": "신혼부부"
+          },
+          {
+            "path": "borrower.annualIncomeCombined",
+            "op": "lte",
+            "value": null,
+            "label": "부부합산 연소득",
+            "unit": "원"
+          },
+          {
+            "path": "lease.deposit",
+            "op": "lte",
+            "value": null,
+            "label": "임차보증금",
+            "unit": "원"
+          }
+        ]
+      },
+      "limit": {
+        "max": null,
+        "depositRatio": null
+      },
+      "rateTable": {
+        "incomeBands": [],
+        "termYears": [],
+        "matrix": []
+      },
+      "rateDiscounts": [],
+      "rateFloor": null,
+      "maxTermYears": null,
+      "repaymentMethods": [
+        "만기일시"
+      ]
+    },
+    {
+      "variantId": "beotimmok-newborn",
+      "name": "신생아 특례 전세자금",
+      "eligibility": {
+        "and": [
+          {
+            "path": "borrower.ownedHouses",
+            "op": "eq",
+            "value": 0,
+            "label": "무주택"
+          },
+          {
+            "path": "borrower.newbornWithinMonths",
+            "op": "lte",
+            "value": null,
+            "label": "출산 후 경과",
+            "unit": "개월"
+          },
+          {
+            "path": "borrower.annualIncomeCombined",
+            "op": "lte",
+            "value": null,
+            "label": "부부합산 연소득",
+            "unit": "원"
+          },
+          {
+            "path": "lease.deposit",
+            "op": "lte",
+            "value": null,
+            "label": "임차보증금",
+            "unit": "원"
+          }
+        ]
+      },
+      "limit": {
+        "max": null,
+        "depositRatio": null
+      },
+      "rateTable": {
+        "incomeBands": [],
+        "termYears": [],
+        "matrix": []
+      },
+      "rateDiscounts": [],
+      "rateFloor": null,
+      "maxTermYears": null,
+      "repaymentMethods": [
+        "만기일시"
+      ]
+    }
+  ]
+}

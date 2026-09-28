@@ -1,0 +1,186 @@
+{
+  "meta": {
+    "id": "didimdol", "기준일": "2026-09-28",
+    "출처": "법무법인 제이엘 「분양전환 상담일지」(NHF) — 사내 상담자료",
+    "출처URL": "",
+    "verified": false, "작성자": "상담일지 전사",
+    "비고": [
+      "사내 상담일지에 적힌 값을 그대로 옮긴 것입니다. 주택도시기금(nhuf.molit.go.kr) 원문과",
+      "대조하기 전까지 verified 는 false 로 둡니다. 금리표·한도·소득·자산 기준은 상담일지 기재값,",
+      "우대금리 항목별 폭은 상담일지에 없어 비워 두었습니다(합계 상한만 기재되어 있습니다)."
+    ]
+  },
+  "_확인필요": [
+    "우대금리 항목별 폭 (청약통장·생애최초·다자녀·신혼 등) — 상담일지에는 합계 상한만 있습니다",
+    "생애최초 LTV 80% 의 적용 조건 — 상담일지 「생초 80% 수도권 제외」의 의미(수도권은 70%인지)",
+    "LTV 기준이 공시가격인지 감정가·시세인지 — 상담일지는 '공시가격의 70%'로 적고 있습니다",
+    "신생아 특례 유형의 소득·한도 (상담일지에 없음)",
+    "2자녀 가구가 '신혼·2자녀 3.2억'에 해당하는 조건(자녀수만인지 연령요건이 붙는지)"
+  ],
+
+  "productId": "didimdol",
+  "name": "디딤돌대출",
+  "category": "기금",
+  "kind": "주택담보",
+  "취급": "우리은행 취급지점",
+  "중도상환수수료": { "비율": 0.006, "면제경과년": 3, "설명": "취급 후 3년 이내 0.6%, 3년 이후 면제" },
+
+  "_공통금리표설명": [
+    "소득구간 × 만기 격자. 상담일지 기재값(%)을 비율로 옮겼습니다.",
+    "지방 소재 주택은 0.2%p 인하되고, 이는 우대금리 합계 상한과 별개로 적용됩니다.",
+    "우대금리 합계 상한은 0.5%p, 다자녀 가구는 0.7%p 입니다."
+  ],
+
+  "variants": [
+    {
+      "variantId": "didimdol-general",
+      "name": "디딤돌 일반",
+      "eligibility": { "and": [
+        { "path": "borrower.ownedHouses", "op": "eq", "value": 0, "label": "무주택" },
+        { "path": "borrower.annualIncomeCombined", "op": "lte", "value": 60000000, "label": "부부합산 연소득", "unit": "원" },
+        { "path": "borrower.netAssets", "op": "lte", "value": 511000000, "label": "순자산", "unit": "원" },
+        { "path": "house.price", "op": "lte", "value": 500000000, "label": "주택가격(시세)", "unit": "원" },
+        { "path": "house.areaSqm", "op": "lte", "value": 85, "label": "전용면적", "unit": "㎡" }
+      ] },
+      "limit": { "max": 200000000, "ltvOverride": 0.7, "ltvBase": "공시가격", "dtiOverride": 0.6 },
+      "rateTable": {
+        "incomeBands": [20000000, 40000000, 70000000, 85000000],
+        "termYears": [10, 15, 20, 30],
+        "matrix": [
+          [0.0285, 0.0295, 0.0305, 0.0310],
+          [0.0320, 0.0330, 0.0340, 0.0345],
+          [0.0355, 0.0365, 0.0375, 0.0380],
+          [0.0390, 0.0400, 0.0410, 0.0415]
+        ]
+      },
+      "rateDiscounts": [
+        { "id": "subscription", "label": "청약통장", "value": null, "condition": { "path": "borrower.hasSubscriptionAccount", "op": "eq", "value": true } },
+        { "id": "firsttime", "label": "생애최초", "value": null, "condition": { "path": "borrower.isFirstTime", "op": "eq", "value": true } },
+        { "id": "multichild", "label": "다자녀", "value": null, "condition": { "path": "borrower.children", "op": "gte", "value": 2 } },
+        { "id": "newlywed", "label": "신혼가구", "value": null, "condition": { "path": "borrower.isNewlywed", "op": "eq", "value": true } }
+      ],
+      "discountCap": 0.005,
+      "discountCapWhen": [
+        { "label": "다자녀 상한", "value": 0.007, "condition": { "path": "borrower.children", "op": "gte", "value": 2 } }
+      ],
+      "rateAdjustments": [
+        { "id": "nonmetro", "label": "지방 소재 주택 인하", "value": -0.002, "condition": { "path": "house.isMetro", "op": "eq", "value": false } }
+      ],
+      "rateFloor": null,
+      "maxTermYears": 30,
+      "repaymentMethods": ["원리금균등", "원금균등"],
+      "graceMonthsAllowed": [0, 12]
+    },
+    {
+      "variantId": "didimdol-firsttime",
+      "name": "디딤돌 생애최초",
+      "eligibility": { "and": [
+        { "path": "borrower.ownedHouses", "op": "eq", "value": 0, "label": "무주택" },
+        { "path": "borrower.isFirstTime", "op": "eq", "value": true, "label": "생애최초" },
+        { "path": "borrower.annualIncomeCombined", "op": "lte", "value": 70000000, "label": "부부합산 연소득", "unit": "원" },
+        { "path": "borrower.netAssets", "op": "lte", "value": 511000000, "label": "순자산", "unit": "원" },
+        { "path": "house.price", "op": "lte", "value": 500000000, "label": "주택가격(시세)", "unit": "원" },
+        { "path": "house.areaSqm", "op": "lte", "value": 85, "label": "전용면적", "unit": "㎡" }
+      ] },
+      "limit": { "max": 240000000, "ltvOverride": 0.7, "ltvBase": "공시가격", "dtiOverride": 0.6 },
+      "rateTable": {
+        "incomeBands": [20000000, 40000000, 70000000, 85000000],
+        "termYears": [10, 15, 20, 30],
+        "matrix": [
+          [0.0285, 0.0295, 0.0305, 0.0310],
+          [0.0320, 0.0330, 0.0340, 0.0345],
+          [0.0355, 0.0365, 0.0375, 0.0380],
+          [0.0390, 0.0400, 0.0410, 0.0415]
+        ]
+      },
+      "rateDiscounts": [
+        { "id": "subscription", "label": "청약통장", "value": null, "condition": { "path": "borrower.hasSubscriptionAccount", "op": "eq", "value": true } },
+        { "id": "multichild", "label": "다자녀", "value": null, "condition": { "path": "borrower.children", "op": "gte", "value": 2 } }
+      ],
+      "discountCap": 0.005,
+      "discountCapWhen": [
+        { "label": "다자녀 상한", "value": 0.007, "condition": { "path": "borrower.children", "op": "gte", "value": 2 } }
+      ],
+      "rateAdjustments": [
+        { "id": "nonmetro", "label": "지방 소재 주택 인하", "value": -0.002, "condition": { "path": "house.isMetro", "op": "eq", "value": false } }
+      ],
+      "rateFloor": null,
+      "maxTermYears": 30,
+      "repaymentMethods": ["원리금균등", "원금균등"],
+      "graceMonthsAllowed": [0, 12]
+    },
+    {
+      "variantId": "didimdol-newlywed",
+      "name": "디딤돌 신혼부부",
+      "eligibility": { "and": [
+        { "path": "borrower.ownedHouses", "op": "eq", "value": 0, "label": "무주택" },
+        { "path": "borrower.isNewlywed", "op": "eq", "value": true, "label": "신혼부부" },
+        { "path": "borrower.annualIncomeCombined", "op": "lte", "value": 85000000, "label": "부부합산 연소득", "unit": "원" },
+        { "path": "borrower.netAssets", "op": "lte", "value": 511000000, "label": "순자산", "unit": "원" },
+        { "path": "house.price", "op": "lte", "value": 600000000, "label": "주택가격(시세)", "unit": "원" },
+        { "path": "house.areaSqm", "op": "lte", "value": 85, "label": "전용면적", "unit": "㎡" }
+      ] },
+      "limit": { "max": 320000000, "ltvOverride": 0.7, "ltvBase": "공시가격", "dtiOverride": 0.6 },
+      "rateTable": {
+        "incomeBands": [20000000, 40000000, 70000000, 85000000],
+        "termYears": [10, 15, 20, 30],
+        "matrix": [
+          [0.0285, 0.0295, 0.0305, 0.0310],
+          [0.0320, 0.0330, 0.0340, 0.0345],
+          [0.0355, 0.0365, 0.0375, 0.0380],
+          [0.0390, 0.0400, 0.0410, 0.0415]
+        ]
+      },
+      "rateDiscounts": [
+        { "id": "subscription", "label": "청약통장", "value": null, "condition": { "path": "borrower.hasSubscriptionAccount", "op": "eq", "value": true } },
+        { "id": "multichild", "label": "다자녀", "value": null, "condition": { "path": "borrower.children", "op": "gte", "value": 2 } }
+      ],
+      "discountCap": 0.005,
+      "discountCapWhen": [
+        { "label": "다자녀 상한", "value": 0.007, "condition": { "path": "borrower.children", "op": "gte", "value": 2 } }
+      ],
+      "rateAdjustments": [
+        { "id": "nonmetro", "label": "지방 소재 주택 인하", "value": -0.002, "condition": { "path": "house.isMetro", "op": "eq", "value": false } }
+      ],
+      "rateFloor": null,
+      "maxTermYears": 30,
+      "repaymentMethods": ["원리금균등", "원금균등"],
+      "graceMonthsAllowed": [0, 12]
+    },
+    {
+      "variantId": "didimdol-twochild",
+      "name": "디딤돌 2자녀 이상",
+      "eligibility": { "and": [
+        { "path": "borrower.ownedHouses", "op": "eq", "value": 0, "label": "무주택" },
+        { "path": "borrower.children", "op": "gte", "value": 2, "label": "자녀수", "unit": "명" },
+        { "path": "borrower.annualIncomeCombined", "op": "lte", "value": 70000000, "label": "부부합산 연소득", "unit": "원" },
+        { "path": "borrower.netAssets", "op": "lte", "value": 511000000, "label": "순자산", "unit": "원" },
+        { "path": "house.price", "op": "lte", "value": 600000000, "label": "주택가격(시세)", "unit": "원" },
+        { "path": "house.areaSqm", "op": "lte", "value": 85, "label": "전용면적", "unit": "㎡" }
+      ] },
+      "limit": { "max": 320000000, "ltvOverride": 0.7, "ltvBase": "공시가격", "dtiOverride": 0.6 },
+      "rateTable": {
+        "incomeBands": [20000000, 40000000, 70000000, 85000000],
+        "termYears": [10, 15, 20, 30],
+        "matrix": [
+          [0.0285, 0.0295, 0.0305, 0.0310],
+          [0.0320, 0.0330, 0.0340, 0.0345],
+          [0.0355, 0.0365, 0.0375, 0.0380],
+          [0.0390, 0.0400, 0.0410, 0.0415]
+        ]
+      },
+      "rateDiscounts": [
+        { "id": "subscription", "label": "청약통장", "value": null, "condition": { "path": "borrower.hasSubscriptionAccount", "op": "eq", "value": true } },
+        { "id": "multichild", "label": "다자녀", "value": null, "condition": { "path": "borrower.children", "op": "gte", "value": 2 } }
+      ],
+      "discountCap": 0.007,
+      "rateAdjustments": [
+        { "id": "nonmetro", "label": "지방 소재 주택 인하", "value": -0.002, "condition": { "path": "house.isMetro", "op": "eq", "value": false } }
+      ],
+      "rateFloor": null,
+      "maxTermYears": 30,
+      "repaymentMethods": ["원리금균등", "원금균등"],
+      "graceMonthsAllowed": [0, 12]
+    }
+  ]
+}

@@ -361,3 +361,72 @@ export function eligibilityPanel({ store, open, onToggle }) {
     }),
   ], { id: 'panel-eligibility', actions: head });
 }
+
+/**
+ * 분양전환 (민간임대 → 분양전환).
+ *
+ * 일반 매매 상담에서는 쓰지 않으므로 기본은 접어 둔다. 켜면 상담일지 첫 표
+ * (분양가 A / 납입보증금 B / 보증금대출 C / 본인준비금 D)를 그대로 입력받는다.
+ */
+export function conversionPanel({ store, open, onToggle }) {
+  const c = store.get().conversion ?? {};
+  const head = el('button.btn.sm', {
+    type: 'button',
+    text: open ? '접기' : '펼치기',
+    onClick: () => onToggle(!open),
+  });
+
+  if (!open) {
+    return panel('분양전환', [
+      el('p.tiny.faint', {
+        text: '민간임대 분양전환 상담입니다. 필요자금(A−B+C−D) · 분할납부(잔금유예) · LH 검증 요건을 계산합니다.',
+      }),
+    ], { id: 'panel-conversion', actions: head });
+  }
+
+  const on = Boolean(c.enabled);
+  const body = [
+    el('div.checks', {}, [
+      checkbox('분양전환 상담으로 계산', on, (v) => store.set('conversion.enabled', v)),
+    ]),
+  ];
+
+  if (on) {
+    body.push(
+      el('p.tiny.faint', { text: '① 필요자금 — 상담일지 첫 표', style: 'margin:10px 0 2px' }),
+      moneyField('분양가 (A)', c.분양가, (v) => store.set('conversion.분양가', v)),
+      moneyField('납입보증금 (B)', c.납입보증금, (v) => store.set('conversion.납입보증금', v), { hint: '이미 낸 보증금 — 차감됩니다' }),
+      moneyField('보증금대출 (C)', c.보증금대출, (v) => store.set('conversion.보증금대출', v), { hint: '계약 시 상환해야 하므로 더합니다' }),
+      moneyField('본인준비금 (D)', c.본인준비금, (v) => store.set('conversion.본인준비금', v)),
+
+      el('p.tiny.faint', { text: '② 분할납부(잔금유예)', style: 'margin:12px 0 2px' }),
+      segField('타입', OPTIONS.전환타입.map((t) => ({ value: t, label: `${t}㎡` })), c.타입, (v) => store.set('conversion.타입', v), {
+        hint: '타입에 따라 최소 잔금유예금이 5,500만원 / 7,500만원으로 갈립니다',
+      }),
+      dateField('계약일', c.계약일, (v) => store.set('conversion.계약일', v)),
+      dateField('청산일', c.청산일, (v) => store.set('conversion.청산일', v), { hint: '계약일+10년과 비교해 빠른 날이 만기입니다. 미정이면 비워 두십시오.' }),
+      moneyField('분할납부액', c.분할납부액, (v) => store.set('conversion.분할납부액', v || null), {
+        hint: '비워 두면 가능한 최대로 계산합니다',
+      }),
+      pctField('잔금유예 금리', c.잔금유예금리, (v) => store.set('conversion.잔금유예금리', v || null), {
+        hint: '⚠ 상담일지에 금리가 적혀 있지 않습니다. 확인한 금리를 넣으십시오.',
+      }),
+
+      el('p.tiny.faint', { text: '③ LH 저소득층 검증 요건', style: 'margin:12px 0 2px' }),
+      segField('가구원수', OPTIONS.가구원수.map((n) => ({ value: String(n), label: `${n}인` })), c.가구원수 != null ? String(c.가구원수) : null,
+        (v) => store.set('conversion.가구원수', v ? Number(v) : null)),
+      moneyField('월소득', c.월소득, (v) => store.set('conversion.월소득', v), { hint: '가구원수별 기준과 비교합니다' }),
+      moneyField('자산가액', c.자산가액, (v) => store.set('conversion.자산가액', v)),
+      moneyField('자동차가액', c.자동차가액, (v) => store.set('conversion.자동차가액', v), {
+        hint: '여러 대여도 가장 높은 차량 1대 (보험개발원 확인)',
+      }),
+      el('div.checks', {}, [
+        checkbox('국가유공자 자격으로 공급', c.국가유공자, (v) => store.set('conversion.국가유공자', v), {
+          title: '유공자 자격으로 공급받은 경우에는 요건과 무관하게 신청 가능합니다',
+        }),
+      ]),
+    );
+  }
+
+  return panel('분양전환', body, { id: 'panel-conversion', actions: head });
+}

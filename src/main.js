@@ -14,11 +14,10 @@ import { toRecord, fromRecord, compareConfig } from './core/record.js';
 import * as storage from './io/storage.js';
 import { download, readFile, safeFilename } from './io/transfer.js';
 import { el, $, replace, select, panel as panelOf } from './ui/dom.js';
-import { complexPanel, borrowerPanel, collateralPanel, productPanel, schedulePanel, consultationPanel, eligibilityPanel } from './ui/panels.js';
+import { complexPanel, borrowerPanel, collateralPanel, productPanel, schedulePanel, consultationPanel, eligibilityPanel, conversionPanel } from './ui/panels.js';
 import {
   summaryStrip, scriptPanel, limitPanel, scenarioPanel, schedulePanelResult,
-  timelinePanel, fundsPanel, warningsPanel, errorsPanel,
-} from './ui/results.js';
+  timelinePanel, fundsPanel, warningsPanel, errorsPanel, conversionPanel as conversionResultPanel } from './ui/results.js';
 import { productsPanel } from './ui/result-products.js';
 import { openComplexEditor } from './ui/complex-editor.js';
 import * as complexStore from './io/complex-store.js';
@@ -30,6 +29,7 @@ const ui = {
   monthlySchedule: false,
   bannerOpen: false,
   eligibilityOpen: false,
+  conversionOpen: false,
   tab: 'input',        // 모바일 전용: input | result
   toolsOpen: false,
   // 모바일에서 기본으로 접어 둘 패널. 자주 안 여는 것부터.
@@ -217,6 +217,9 @@ function render({ keepRail = false } = {}) {
   }
 
   const hasErrors = result.errors.length > 0;
+  // 한도만 막는 오류(규제수치 미입력)와 계산 자체가 불가능한 오류를 구분한다.
+  // 전자에서는 상품 비교·분양전환은 그대로 보여 준다.
+  const onlyLimitBlocked = hasErrors && result.errors.every((e) => e.blocks === 'limit');
 
   document.body.dataset.tab = ui.tab;
   document.body.dataset.tools = ui.toolsOpen ? 'open' : 'closed';
@@ -234,7 +237,7 @@ function render({ keepRail = false } = {}) {
     replace(shell.rail, railPanels(result));
   }
 
-  replace(shell.results, resultPanels(result, hasErrors));
+  replace(shell.results, resultPanels(result, hasErrors, onlyLimitBlocked));
   replace(shell.printFooter, [printFooter(result)]);
   replace(shell.tabbar, [tabbar(result)]);
 }
@@ -261,17 +264,25 @@ function railPanels(result) {
       open: ui.eligibilityOpen,
       onToggle: (v) => { ui.eligibilityOpen = v; render(); },
     }),
+    conversionPanel({
+      store,
+      open: ui.conversionOpen,
+      onToggle: (v) => { ui.conversionOpen = v; render(); },
+    }),
     schedulePanel({ store }),
     consultationPanel({ store, ...fold('panel-consultation', true) }),
   ].filter(Boolean);
 }
 
-function resultPanels(result, hasErrors) {
+function resultPanels(result, hasErrors, onlyLimitBlocked = false) {
+  // 한도만 막힌 경우에도 살려 두는 것들 — LTV·DSR 을 쓰지 않는 계산이다.
+  const 한도무관 = !hasErrors || onlyLimitBlocked;
   return [
     errorsPanel(result.errors),
     hasErrors ? null : scriptPanel(result),
     hasErrors ? null : limitPanel(result),
-    hasErrors ? null : productsPanel(result),
+    한도무관 ? productsPanel(result) : null,
+    한도무관 ? conversionResultPanel(result, ui.collapsed) : null,
     hasErrors ? null : fundsPanel(result),
     hasErrors ? null : timelinePanel(result, fold('result-timeline', true)),
     hasErrors ? null : scenarioPanel(result, fold('result-scenarios', true)),
