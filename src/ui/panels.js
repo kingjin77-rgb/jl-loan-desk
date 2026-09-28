@@ -398,8 +398,15 @@ export function conversionPanel({ store, open, onToggle }) {
 
       el('p.tiny.faint', { text: '② 분할납부(잔금유예)', style: 'margin:12px 0 2px' }),
       segField('타입', OPTIONS.전환타입.map((t) => ({ value: t, label: `${t}㎡` })), c.타입, (v) => store.set('conversion.타입', v), {
-        hint: '타입에 따라 최소 잔금유예금이 5,500만원 / 7,500만원으로 갈립니다',
+        hint: '타입에 따라 최소 잔금유예금과 기금승계 한도가 5,500만원 / 7,500만원으로 갈립니다',
       }),
+      // 대부분 기금을 쓰지만 모두가 쓰는 건 아니다. 기본은 켜 두고, 끄면 다른 상품으로 넘어간다.
+      el('div.checks', {}, [
+        checkbox('기금대출 승계 사용 (타입별 한도 · 취급점에서 승계)', c.기금승계사용 !== false,
+          (v) => store.set('conversion.기금승계사용', v), {
+            title: '끄면 디딤돌·보금자리·은행 등 비교표의 다른 상품으로 계산합니다',
+          }),
+      ]),
       dateField('계약일', c.계약일, (v) => store.set('conversion.계약일', v)),
       dateField('청산일', c.청산일, (v) => store.set('conversion.청산일', v), { hint: '계약일+10년과 비교해 빠른 날이 만기입니다. 미정이면 비워 두십시오.' }),
       moneyField('분할납부액', c.분할납부액, (v) => store.set('conversion.분할납부액', v || null), {

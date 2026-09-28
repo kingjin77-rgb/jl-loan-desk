@@ -1,0 +1,63 @@
+{
+  "meta": {
+    "id": "dsr(예시)",
+    "기준일": "2026-09-19",
+    "출처": "없음 — 설명용 예시 수치",
+    "출처URL": "",
+    "verified": false,
+    "작성자": "예시",
+    "비고": [
+      "설명용 예시 수치입니다. 은행 일반 주담대의 계산 **구조**를 보여 주기 위한 값이며 실제 규정값이 아닙니다.",
+      "실행일·현장·은행마다 다릅니다. 정확한 조건은 취급은행·상담사 문의.",
+      "「규제 수치」 화면에서 실제값을 넣으면 그 항목은 예시 대신 실제값으로 계산됩니다."
+    ],
+    "example": true
+  },
+  "limits": {
+    "은행권": 0.4,
+    "제2금융권": 0.5
+  },
+  "dtiLimits": {
+    "투기과열": 0.4,
+    "조정대상": 0.5,
+    "비규제": null
+  },
+  "dsrMaturityCapMonths": {
+    "주택담보대출": 360,
+    "신용대출": 120,
+    "기타담보": 120
+  },
+  "exemptions": [
+    {
+      "id": "중도금",
+      "label": "중도금대출(집단대출)",
+      "threshold": null,
+      "note": "잔금 전환 시 적용"
+    }
+  ],
+  "existingDebtRules": {
+    "default": {
+      "mode": "amortized",
+      "maturityMonths": 120
+    },
+    "주택담보대출": {
+      "mode": "amortized",
+      "maturityMonths": 360
+    },
+    "신용대출": {
+      "mode": "amortized",
+      "maturityMonths": 120
+    },
+    "마이너스통장": {
+      "mode": "limitAmortized",
+      "maturityMonths": 120
+    },
+    "전세자금대출": {
+      "mode": "interestOnly"
+    },
+    "기타담보대출": {
+      "mode": "amortized",
+      "maturityMonths": 120
+    }
+  }
+}

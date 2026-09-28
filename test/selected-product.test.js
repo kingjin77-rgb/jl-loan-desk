@@ -109,3 +109,19 @@ test('상품 만기가 더 짧으면 그 만기로 갚는다', () => {
   assert.equal(r.paymentRate.termMonths, 240);
   assert.equal(r.limit.selectedProduct.termCapped, true);
 });
+
+/* ── 예시 규제값 표시 ── */
+test('★ 예시 규제값으로 만든 상한은 isExample 로 드러난다 — 은행일 때만', () => {
+  const 예시정책 = { ...POLICIES, ltv: { ...POLICIES.ltv, meta: { ...POLICIES.ltv.meta, example: true } } };
+  const 은행 = derive(입력(), 예시정책, { products: 상품문서 });
+  assert.ok(은행.exampleCaps.includes('LTV 한도'));
+  assert.equal(은행.isExample, true);
+
+  // 정책상품을 고르면 그 상품 기준이므로 예시가 아니다
+  const 기금 = derive(입력({ product: { selectedVariantId: 'testfund-general' } }), 예시정책, { products: 상품문서 });
+  assert.equal(기금.isExample, false);
+
+  const 실제 = derive(입력(), POLICIES, { products: 상품문서 });
+  assert.equal(실제.isExample, false);
+  assert.deepEqual(실제.exampleCaps, []);
+});

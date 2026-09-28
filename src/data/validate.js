@@ -193,10 +193,12 @@ export function collectUnsetValues(policies) {
 
 /** 미검증·데모 설정 목록. 배너에 그대로 쓴다. */
 export function collectTrustFlags(policies) {
-  const out = { demo: [], unverified: [], oldest: null };
-  for (const doc of Object.values(policies)) {
+  const out = { demo: [], example: [], unverified: [], oldest: null };
+  for (const [key, doc] of Object.entries(policies)) {
     if (!doc?.meta) continue;
     if (doc.meta.demo) out.demo.push(doc.meta.id);
+    // 예시는 데모와 다르다: 실무에서 은행 주담대 설명용으로 쓰이는 값이며 결과에 「예시」가 붙는다.
+    else if (doc.meta.example) out.example.push(key);
     else if (!doc.meta.verified) out.unverified.push(doc.meta.id);
     if (doc.meta.기준일 && (!out.oldest || doc.meta.기준일 < out.oldest)) out.oldest = doc.meta.기준일;
   }

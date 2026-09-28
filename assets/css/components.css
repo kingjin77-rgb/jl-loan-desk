@@ -190,3 +190,6 @@ dialog.editor.policy { max-width: 720px; }
 /* 일부상환 행 — 날짜·금액·경고·삭제 */
 .row-item.prepay { grid-template-columns: minmax(120px,1fr) minmax(90px,1fr) auto auto; }
 .row-item.prepay .tiny.warn { align-self: center; }
+
+/* 은행 주담대 = 예시·가이드. 정책상품 행에는 붙지 않는다. */
+.chip.example { background: var(--warn-soft); color: var(--warn); border-color: transparent; font-weight: 700; margin: 4px 0; display: inline-block; }

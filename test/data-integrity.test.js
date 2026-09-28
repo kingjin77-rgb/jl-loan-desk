@@ -241,4 +241,32 @@ if (isNode) {
       }
     }
   });
+
+  // ── 예시 규제값: 은행 주담대 설명용. 데모와 섞이면 배너 문구가 틀어진다.
+  test('★ 예시 파일은 example:true 이고 demo 가 없다', () => {
+    const dir = join(DATA, 'policy/example');
+    const files = readdirSync(dir).filter((f) => f.endsWith('.json'));
+    assert.ok(files.length >= 5, '예시 파일이 5개 이상 있어야 한다 (ltv·dsr·stress·bangongje·mci)');
+    for (const f of files) {
+      const d = JSON.parse(readFileSync(join(dir, f), 'utf8'));
+      assert.equal(d.meta.example, true, `${f}: meta.example 이 true 여야 한다`);
+      assert.equal(d.meta.demo, undefined, `${f}: demo 플래그가 남아 있다`);
+      assert.equal(d.meta.verified, false, `${f}: 예시가 검수완료일 수 없다`);
+      assert.match(d.meta.id, /예시/, `${f}: id 에 (예시) 가 붙어야 화면에서 구분된다`);
+    }
+  });
+
+  test('예시는 은행 규제값에만 있다 — 분양전환·정책상품에는 예시가 없어야 한다', () => {
+    const m = JSON.parse(readFileSync(join(DATA, 'manifest.json'), 'utf8'));
+    const ex = m.profiles.실무.examplePolicy ?? {};
+    assert.ok(!('bunyangjeonhwan' in ex), '분양전환은 정확해야 한다 — 예시 금지');
+    assert.ok(!('regions' in ex), '규제지역 목록에 예시를 두면 엉뚱한 지역이 규제지역으로 뜬다');
+    for (const p of Object.values(ex)) assert.ok(existsSync(join(DATA, p)), `${p} 가 없다`);
+  });
+
+  test('기본 프로파일은 실무이고, 실무 products 에 기금승계가 있다', () => {
+    const m = JSON.parse(readFileSync(join(DATA, 'manifest.json'), 'utf8'));
+    assert.equal(m.defaultProfile, '실무');
+    assert.ok(m.profiles.실무.products.some((p) => /gigeum-seunggye/.test(p)));
+  });
 }

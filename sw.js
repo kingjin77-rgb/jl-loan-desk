@@ -13,7 +13,7 @@
 // SHELL 목록이나 소스가 바뀌면 이 번호를 올린다 — 낡은 프리캐시를 비우고 새로 담는다.
 // (평소에는 네트워크 우선이라 온라인 사용자는 항상 최신 파일을 받는다. 이 번호는
 //  오프라인용으로 미리 담아 둔 묶음을 갈아 끼우기 위한 것이다.)
-const VERSION = 'jl-loan-desk-v3';
+const VERSION = 'jl-loan-desk-v4';
 const SHELL = [
   './',
   './index.html',
@@ -86,6 +86,7 @@ async function dataFiles() {
     const out = ['./data/manifest.json'];
     for (const profile of Object.values(m.profiles ?? {})) {
       for (const path of Object.values(profile.policy ?? {})) out.push('./data/' + path);
+      for (const path of Object.values(profile.examplePolicy ?? {})) out.push('./data/' + path);
       for (const path of profile.products ?? []) out.push('./data/' + path);
     }
     if (m.complexes) out.push('./data/' + m.complexes);

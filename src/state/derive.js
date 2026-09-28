@@ -133,16 +133,37 @@ export function derive(input, policies, opts = {}) {
   //   상담일지에서 확인된 값이다. 규제표를 못 채웠다는 이유로 이미 확인된 상품까지
   //   계산을 막으면 프로그램을 쓸 수가 없다.
   let selectedProduct = null;
-  const wantVariant = input.product.selectedVariantId;
+  let wantVariant = input.product.selectedVariantId;
+  let autoPicked = false;
+
+  // 분양전환에서 타입을 고르면 그 타입의 기금승계를 **기본 제안**한다.
+  // 대부분 기금을 쓰지만 모두가 쓰는 건 아니다 — 상담사가 다른 상품을 고르거나
+  // 「기금대출 승계 사용」을 끄면 물러난다. 자동은 아무것도 고르지 않았을 때만.
+  if (!wantVariant && input.conversion?.enabled && input.conversion.타입 && input.conversion.기금승계사용 !== false && productDocs.length) {
+    const eligCtx0 = eligibilityContext(input, houseValue);
+    const cand = flattenProducts(productDocs)
+      .filter((x) => x.productId === 'gigeum-seunggye')
+      .find((x) => evaluate(x.eligibility, eligCtx0).eligible);
+    if (cand) { wantVariant = cand.variantId; autoPicked = true; }
+  }
+
   if (wantVariant && productDocs.length) {
     const v = flattenProducts(productDocs).find((x) => x.variantId === wantVariant);
     if (v) {
       const eligCtx = eligibilityContext(input, houseValue);
-      // 만기는 상품이 허용하는 범위로 줄이고, **줄어든 만기로** 금리표를 조회한다.
+      // 만기: 상품이 고정하면(기금승계 20년) 그것. 아니면 허용 범위로 줄이고
+      // **줄어든 만기로** 금리표를 조회한다.
       const tl = termLimit(v, eligCtx);
-      const term = tl.maxYears != null
-        ? Math.min(input.product.termMonths, tl.maxYears * 12)
-        : input.product.termMonths;
+      const term = v.fixedTermYears != null
+        ? v.fixedTermYears * 12
+        : tl.maxYears != null
+          ? Math.min(input.product.termMonths, tl.maxYears * 12)
+          : input.product.termMonths;
+      // 거치: 상품이 선택지를 정하면(1년/3년) 그 안의 값만. 아니면 첫 선택지.
+      const gOpts = v.graceOptions?.map((g) => g.months);
+      const grace = gOpts?.length
+        ? (gOpts.includes(input.product.graceMonths) ? input.product.graceMonths : gOpts[0])
+        : (input.product.graceMonths ?? 0);
       const rate = productRate(v, { ...eligCtx, product: { ...input.product, termMonths: term } });
 
       selectedProduct = {
@@ -151,6 +172,10 @@ export function derive(input, policies, opts = {}) {
         rate,
         termMonths: term,
         termCapped: term < input.product.termMonths,
+        termFixed: v.fixedTermYears != null,
+        graceMonths: grace,
+        graceOptions: v.graceOptions ?? null,
+        auto: autoPicked,
       };
 
       caps.push(productCap(v, eligCtx, { houseValue }));
@@ -182,17 +207,30 @@ export function derive(input, policies, opts = {}) {
   //
   // 규제 LTV 가 없어도 고른 상품이 자기 LTV·한도를 갖고 있으면 그것으로 낸다.
   // 그 사실을 숨기지 않는다 — basis 와 missingRegulation 으로 화면에 표시한다.
-  const 상품기준 = ltvMissing && selectedProduct != null
-    && caps.some((c) => c.id === CAP_IDS.PRODUCT && c.applicable && Number.isFinite(c.amount));
+  // ★ 정책상품(기금승계·디딤돌·보금자리)을 골랐으면 **예시 규제값은 쓰지 않는다.**
+  //   예시는 은행 주담대의 설명용이다. 정책상품에 예시 LTV 를 섞으면 "디딤돌 기준"이라
+  //   해놓고 예시 숫자가 한도를 막는다. 예시 상한은 빼고, 상품 자체 조건으로만 낸 뒤
+  //   규제가 빠졌다는 사실을 밝힌다(상품 기준 경로).
+  const 정책상품선택 = selectedProduct != null && selectedProduct.variant.productId !== 'general-mortgage';
+  const exampleDropped = 정책상품선택 ? caps.filter((c) => c.source?.example) : [];
+  const capsForLimit = 정책상품선택 ? caps.filter((c) => !c.source?.example) : caps;
+
+  const 상품기준 = 정책상품선택
+    && (ltvMissing || exampleDropped.length > 0)
+    && capsForLimit.some((c) => c.id === CAP_IDS.PRODUCT && c.applicable && Number.isFinite(c.amount));
 
   const limit = computeLimit({
-    caps,
+    caps: capsForLimit,
     deductions,
     requestedAmount: input.product.requestedAmount || null,
   });
   limit.basis = 상품기준 ? '상품 기준' : '규제 기준';
   limit.missingRegulation = 상품기준
-    ? caps.filter((c) => !c.applicable).map((c) => c.label).concat(['LTV(규제)'])
+    ? [...new Set([
+        ...capsForLimit.filter((c) => !c.applicable).map((c) => c.label),
+        ...exampleDropped.map((c) => c.label.replace(/ 한도$/, '') + '(규제)'),
+        ...(ltvMissing ? ['LTV(규제)'] : []),
+      ])]
     : [];
   limit.selectedProduct = selectedProduct
     ? {
@@ -202,6 +240,11 @@ export function derive(input, policies, opts = {}) {
         rate: selectedProduct.rate?.final ?? null,
         termMonths: selectedProduct.termMonths,
         termCapped: selectedProduct.termCapped,
+        termFixed: selectedProduct.termFixed,
+        graceMonths: selectedProduct.graceMonths,
+        graceOptions: selectedProduct.graceOptions,
+        auto: selectedProduct.auto,
+        productId: selectedProduct.variant.productId,
       }
     : null;
 
@@ -225,6 +268,7 @@ export function derive(input, policies, opts = {}) {
   //   상담사가 틀린 금액을 불러 준다. 상품 금리표가 비어 있을 때만 화면 값을 쓴다.
   const 적용금리 = selectedProduct?.rate?.final ?? input.product.annualRate;
   const 적용만기 = selectedProduct?.termMonths ?? input.product.termMonths;
+  const 적용거치 = selectedProduct?.graceMonths ?? input.product.graceMonths ?? 0;
   const 금리출처 = selectedProduct?.rate?.final != null
     ? `${selectedProduct.variant.name} 상품 금리표`
     : '화면의 약정금리';
@@ -234,7 +278,7 @@ export function derive(input, policies, opts = {}) {
     annualRate: 적용금리,   // ← 약정금리. stress.forDsrOnly 가 아니다.
     termMonths: 적용만기,
     method: input.product.method ?? METHODS.EQUAL_TOTAL,
-    graceMonths: input.product.graceMonths ?? 0,
+    graceMonths: 적용거치,
     startDate: input.product.firstPaymentDate ?? null,
   };
   const payment = amortize(amortInput);
@@ -429,11 +473,31 @@ export function derive(input, policies, opts = {}) {
     ...caps.filter((c) => !c.applicable).map((c) => c.label),
   ];
   result.limitBlocked = errors.some((e) => e.blocks === 'limit');
+  // 예시 규제값으로 만든 상한. 하나라도 있으면 은행 계산은 "예시"다.
+  result.exampleCaps = capsForLimit.filter((c) => c.source?.example).map((c) => c.label);
+  result.isExample = result.exampleCaps.length > 0;
+  // 비교표의 은행 행은 고른 상품과 무관하게 예시 규제값으로 계산된다 — 칩은 이걸로 판단한다.
+  result.hasExamplePolicies = caps.some((c) => c.source?.example);
   result.levers = levers;
   result.loanAmount = loanAmount;
   result.payment = payment;
+  // ★ 거치는 고객이 취급점에서 정한다. 우리가 하나를 골라 주지 않는다.
+  //   상품이 거치 선택지를 갖고 있으면(기금승계 1년/3년) **전부** 계산해 나란히 보여 준다.
+  //   상담일지도 그렇게 두 경우의 숫자를 다 적어 놓았다.
+  result.graceScenarios = selectedProduct?.graceOptions?.length
+    ? selectedProduct.graceOptions.map((g) => {
+        const r = amortize({ ...amortInput, graceMonths: g.months });
+        return {
+          months: g.months, label: g.label,
+          거치중월이자: r.firstPayment,
+          거치후월상환: r.maxPaymentAfterGrace ?? r.monthlyPayment,
+          총이자: r.totalInterest,
+          current: g.months === 적용거치,
+        };
+      })
+    : null;
   // 어느 금리로 갚는 계산을 했는지. 화면이 이걸 적어 줘야 상담사가 확인할 수 있다.
-  result.paymentRate = { rate: 적용금리, termMonths: 적용만기, source: 금리출처 };
+  result.paymentRate = { rate: 적용금리, termMonths: 적용만기, graceMonths: 적용거치, source: 금리출처 };
   result.paymentByYear = byYear(payment.schedule);
   result.scenarios = scenarios;
   result.timeline = timeline;
@@ -520,7 +584,13 @@ function eligibilityContext(input, houseValue) {
     },
     house: {
       price: houseValue,
-      areaSqm: input.collateral.areaSqm,
+      // 분양전환 타입(51·59·74·84)은 곧 전용면적이다. 면적을 따로 안 넣었으면 타입에서
+      // 채운다 — 안 그러면 디딤돌·보금자리의 85㎡ 요건이 「해당 없음」으로 떨어져
+      // 타입까지 골라 놓고도 상품이 전부 부적격으로 뜬다.
+      areaSqm: input.collateral.areaSqm
+        ?? (input.conversion?.enabled && input.conversion.타입 ? Number(input.conversion.타입) : null),
+      // 기금승계 한도는 면적이 아니라 **타입**으로 정해진다.
+      type: input.conversion?.enabled ? (input.conversion.타입 ?? null) : null,
       // 디딤돌 「지방 소재 0.2%p 인하」 판정용. 새 입력을 만들지 않고
       // 이미 있는 스트레스금리 지역구분을 그대로 쓴다 — 상담사가 같은 것을
       // 두 번 입력하게 하면 두 값이 어긋난다.

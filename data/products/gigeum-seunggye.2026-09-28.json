@@ -1,9 +1,11 @@
 {
   "meta": {
-    "id": "gigeum-seunggye", "기준일": "2026-09-28",
+    "id": "gigeum-seunggye",
+    "기준일": "2026-09-28",
     "출처": "법무법인 제이엘 「분양전환 상담일지」(NHF) — 사내 상담자료",
     "출처URL": "",
-    "verified": false, "작성자": "상담일지 전사",
+    "verified": false,
+    "작성자": "상담일지 전사",
     "비고": [
       "분양전환 계약 시 기존 주택에 걸려 있던 기금대출을 계약자가 그대로 인수(승계)하는 방식입니다.",
       "금리는 상담일지에 직접 적혀 있지 않고 월 상환액으로만 제시되어 있어 역산했습니다:",
@@ -11,55 +13,189 @@
       "  7,500만원 → 거치중 월이자 175,000원 → 연 2.8%",
       "이 2.8% 로 상담일지의 나머지 4개 숫자(1년거치 311,400·424,600 / 3년거치 339,200·462,500)를",
       "모두 재현했습니다(백원 단위 올림 차이). 6개 값이 모두 맞으므로 금리는 연 2.8% 로 봅니다.",
-      "다만 상담일지에 금리가 명시된 것은 아니므로 취급점 확인 전까지 verified=false 입니다."
+      "다만 상담일지에 금리가 명시된 것은 아니므로 취급점 확인 전까지 verified=false 입니다.",
+      "한도는 **타입(51·59 / 74·84)** 으로 정해진다. 타입이 없을 때만 전용면적으로 보조 판정한다."
     ]
   },
   "_확인필요": [
     "적용금리가 실제로 연 2.8% 인지 (상담일지에는 월 상환액만 기재 — 역산값입니다)",
-    "전용면적 60㎡ 초과 ~ 74㎡ 미만 구간의 한도 (상담일지에 59.99㎡ 이하 / 74~84.99㎡ 만 기재)",
+    "전용 60㎡ 초과 ~ 74㎡ 미만 타입의 한도 (상담일지에 51·59 / 74·84 만 기재 — 이 사업장에는 그 사이 타입이 없음)",
     "승계 요건의 '개인 신용 결격 사유' 구체 기준",
     "승계 시 DSR 산정 대상 포함 여부"
   ],
-
   "productId": "gigeum-seunggye",
   "name": "기금대출(승계)",
   "category": "기금",
   "kind": "주택담보",
   "취급": "우리은행 기금대출 취급 영업점 전용",
-  "중도상환수수료": { "비율": 0, "설명": "없음 — 언제 상환해도 0원" },
+  "중도상환수수료": {
+    "비율": 0,
+    "설명": "없음 — 언제 상환해도 0원"
+  },
   "소득기준": "무관 (소득 제한 없음, 개인 신용 결격 사유만 없으면 승계 가능)",
-
   "variants": [
     {
       "variantId": "gigeum-seunggye-59",
-      "name": "기금대출 승계 (전용 59.99㎡ 이하)",
-      "eligibility": { "and": [
-        { "path": "house.areaSqm", "op": "lte", "value": 59.99, "label": "전용면적", "unit": "㎡" }
-      ] },
-      "limit": { "max": 55000000 },
-      "rateTable": { "incomeBands": [null], "termYears": [20], "matrix": [[0.028]] },
-      "rateDiscounts": [], "rateAdjustments": [],
+      "name": "기금대출 승계 (51·59타입)",
+      "eligibility": {
+        "or": [
+          {
+            "path": "house.type",
+            "op": "in",
+            "value": [
+              "51",
+              "59"
+            ],
+            "label": "타입 51·59"
+          },
+          {
+            "and": [
+              {
+                "path": "house.type",
+                "op": "exists",
+                "value": false,
+                "label": "타입 미선택"
+              },
+              {
+                "path": "house.areaSqm",
+                "op": "lte",
+                "value": 59.99,
+                "label": "전용면적",
+                "unit": "㎡"
+              }
+            ]
+          }
+        ]
+      },
+      "limit": {
+        "max": 55000000
+      },
+      "rateTable": {
+        "incomeBands": [
+          null
+        ],
+        "termYears": [
+          20
+        ],
+        "matrix": [
+          [
+            0.028
+          ]
+        ]
+      },
+      "rateDiscounts": [],
+      "rateAdjustments": [],
       "rateFloor": null,
       "maxTermYears": 20,
-      "repaymentMethods": ["원리금균등"],
-      "graceMonthsAllowed": [12, 36],
-      "_상환설명": "총 만기 20년. 1년 거치 19년 상환 또는 3년 거치 17년 상환(원리금균등)."
+      "repaymentMethods": [
+        "원리금균등"
+      ],
+      "graceMonthsAllowed": [
+        12,
+        36
+      ],
+      "fixedTermYears": 20,
+      "graceOptions": [
+        {
+          "months": 12,
+          "label": "1년 거치 19년 상환"
+        },
+        {
+          "months": 36,
+          "label": "3년 거치 17년 상환"
+        }
+      ]
     },
     {
       "variantId": "gigeum-seunggye-84",
-      "name": "기금대출 승계 (전용 74~84.99㎡)",
-      "eligibility": { "and": [
-        { "path": "house.areaSqm", "op": "gte", "value": 74, "label": "전용면적 하한", "unit": "㎡" },
-        { "path": "house.areaSqm", "op": "lte", "value": 84.99, "label": "전용면적 상한", "unit": "㎡" }
-      ] },
-      "limit": { "max": 75000000 },
-      "rateTable": { "incomeBands": [null], "termYears": [20], "matrix": [[0.028]] },
-      "rateDiscounts": [], "rateAdjustments": [],
+      "name": "기금대출 승계 (74·84타입)",
+      "eligibility": {
+        "or": [
+          {
+            "path": "house.type",
+            "op": "in",
+            "value": [
+              "74",
+              "84"
+            ],
+            "label": "타입 74·84"
+          },
+          {
+            "and": [
+              {
+                "path": "house.type",
+                "op": "exists",
+                "value": false,
+                "label": "타입 미선택"
+              },
+              {
+                "path": "house.areaSqm",
+                "op": "gte",
+                "value": 74,
+                "label": "전용면적 하한",
+                "unit": "㎡"
+              },
+              {
+                "path": "house.areaSqm",
+                "op": "lte",
+                "value": 84.99,
+                "label": "전용면적 상한",
+                "unit": "㎡"
+              }
+            ]
+          }
+        ]
+      },
+      "limit": {
+        "max": 75000000
+      },
+      "rateTable": {
+        "incomeBands": [
+          null
+        ],
+        "termYears": [
+          20
+        ],
+        "matrix": [
+          [
+            0.028
+          ]
+        ]
+      },
+      "rateDiscounts": [],
+      "rateAdjustments": [],
       "rateFloor": null,
       "maxTermYears": 20,
-      "repaymentMethods": ["원리금균등"],
-      "graceMonthsAllowed": [12, 36],
-      "_상환설명": "총 만기 20년. 1년 거치 19년 상환 또는 3년 거치 17년 상환(원리금균등)."
+      "repaymentMethods": [
+        "원리금균등"
+      ],
+      "graceMonthsAllowed": [
+        12,
+        36
+      ],
+      "fixedTermYears": 20,
+      "graceOptions": [
+        {
+          "months": 12,
+          "label": "1년 거치 19년 상환"
+        },
+        {
+          "months": 36,
+          "label": "3년 거치 17년 상환"
+        }
+      ]
     }
-  ]
+  ],
+  "graceOptions": [
+    {
+      "months": 12,
+      "label": "1년 거치 19년 상환"
+    },
+    {
+      "months": 36,
+      "label": "3년 거치 17년 상환"
+    }
+  ],
+  "fixedTermYears": 20,
+  "_상환설명": "총 만기 20년 고정. 거치 1년 또는 3년 중 선택(원리금균등). 만기는 바꿀 수 없다."
 }

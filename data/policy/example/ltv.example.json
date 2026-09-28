@@ -1,0 +1,160 @@
+{
+  "meta": {
+    "id": "ltv(예시)",
+    "기준일": "2026-09-19",
+    "출처": "없음 — 설명용 예시 수치",
+    "출처URL": "",
+    "verified": false,
+    "작성자": "예시",
+    "비고": [
+      "설명용 예시 수치입니다. 은행 일반 주담대의 계산 **구조**를 보여 주기 위한 값이며 실제 규정값이 아닙니다.",
+      "실행일·현장·은행마다 다릅니다. 정확한 조건은 취급은행·상담사 문의.",
+      "「규제 수치」 화면에서 실제값을 넣으면 그 항목은 예시 대신 실제값으로 계산됩니다."
+    ],
+    "example": true
+  },
+  "default": null,
+  "rules": [
+    {
+      "id": "투기과열-무주택-생애최초-구입",
+      "when": {
+        "regionGrade": "투기과열",
+        "ownedHouses": 0,
+        "isFirstTime": true,
+        "purpose": "구입"
+      },
+      "ltv": 0.5,
+      "note": "가상 수치"
+    },
+    {
+      "id": "투기과열-무주택-구입",
+      "when": {
+        "regionGrade": "투기과열",
+        "ownedHouses": 0,
+        "purpose": "구입"
+      },
+      "ltv": 0.4,
+      "note": "가상 수치"
+    },
+    {
+      "id": "투기과열-1주택-구입",
+      "when": {
+        "regionGrade": "투기과열",
+        "ownedHouses": 1,
+        "purpose": "구입"
+      },
+      "ltv": 0.3,
+      "note": "가상 수치"
+    },
+    {
+      "id": "투기과열-다주택-구입",
+      "when": {
+        "regionGrade": "투기과열",
+        "ownedHouses": "다주택",
+        "purpose": "구입"
+      },
+      "ltv": 0.0,
+      "note": "가상 수치"
+    },
+    {
+      "id": "조정대상-무주택-생애최초-구입",
+      "when": {
+        "regionGrade": "조정대상",
+        "ownedHouses": 0,
+        "isFirstTime": true,
+        "purpose": "구입"
+      },
+      "ltv": 0.6,
+      "note": "가상 수치"
+    },
+    {
+      "id": "조정대상-무주택-구입",
+      "when": {
+        "regionGrade": "조정대상",
+        "ownedHouses": 0,
+        "purpose": "구입"
+      },
+      "ltv": 0.5,
+      "note": "가상 수치"
+    },
+    {
+      "id": "조정대상-1주택-구입",
+      "when": {
+        "regionGrade": "조정대상",
+        "ownedHouses": 1,
+        "purpose": "구입"
+      },
+      "ltv": 0.4,
+      "note": "가상 수치"
+    },
+    {
+      "id": "조정대상-다주택-구입",
+      "when": {
+        "regionGrade": "조정대상",
+        "ownedHouses": "다주택",
+        "purpose": "구입"
+      },
+      "ltv": 0.0,
+      "note": "가상 수치"
+    },
+    {
+      "id": "비규제-무주택-생애최초-구입",
+      "when": {
+        "regionGrade": "비규제",
+        "ownedHouses": 0,
+        "isFirstTime": true,
+        "purpose": "구입"
+      },
+      "ltv": 0.8,
+      "note": "가상 수치"
+    },
+    {
+      "id": "비규제-무주택-구입",
+      "when": {
+        "regionGrade": "비규제",
+        "ownedHouses": 0,
+        "purpose": "구입"
+      },
+      "ltv": 0.7,
+      "note": "가상 수치"
+    },
+    {
+      "id": "비규제-1주택-구입",
+      "when": {
+        "regionGrade": "비규제",
+        "ownedHouses": 1,
+        "purpose": "구입"
+      },
+      "ltv": 0.6,
+      "note": "가상 수치"
+    },
+    {
+      "id": "비규제-다주택-구입",
+      "when": {
+        "regionGrade": "비규제",
+        "ownedHouses": "다주택",
+        "purpose": "구입"
+      },
+      "ltv": 0.4,
+      "note": "가상 수치"
+    },
+    {
+      "id": "생활안정자금-전체",
+      "when": {
+        "purpose": "생활안정"
+      },
+      "ltv": 0.4,
+      "absoluteCap": 200000000,
+      "note": "가상 수치"
+    },
+    {
+      "id": "전세반환-전체",
+      "when": {
+        "purpose": "전세반환"
+      },
+      "ltv": 0.5,
+      "note": "가상 수치"
+    }
+  ],
+  "priceTiers": []
+}

@@ -88,5 +88,5 @@ export function regionKeys(config) {
 
 function sourceOf(config) {
   if (!config?.meta) return null;
-  return { file: config.meta.id, 기준일: config.meta.기준일, verified: Boolean(config.meta.verified) };
+  return { file: config.meta.id, 기준일: config.meta.기준일, verified: Boolean(config.meta.verified), example: Boolean(config.meta.example) };
 }

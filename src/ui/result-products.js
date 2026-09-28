@@ -37,9 +37,10 @@ export function productsPanel(r, { store = null } = {}) {
     body.push(el('div.callout.ok', {}, [
       el('div.script', {}, [
         el('p', {}, [
-          el('b', { text: r.limitBlocked
+          el('b', { text: (r.limitBlocked
             ? `${josa(b.name, '이/가')} 금리가 가장 낮습니다 — ${formatPct(b.rate)}`
-            : `${josa(b.name, '이/가')} 가장 유리합니다 — 금리 ${formatPct(b.rate)}, 한도 ${formatKRW(b.amount)}` }),
+            : `${josa(b.name, '이/가')} 가장 유리합니다 — 금리 ${formatPct(b.rate)}, 한도 ${formatKRW(b.amount)}`)
+            + (isExampleRow(b, r) ? ' (예시)' : '') }),
         ]),
         best.runnerUp && best.monthlyGap
           ? el('p', { text:
@@ -64,6 +65,10 @@ export function productsPanel(r, { store = null } = {}) {
       { key: 'name', label: '상품', render: (x) => el('div', {}, [
         el('div', {}, [el('b', { text: x.name })]),
         el('div.tiny.faint', { text: `${x.category}${x.kind === '전세' ? ' · 전세' : ''}` }),
+        // 은행 주담대는 예시 규제값으로 계산된 "가이드"다. 정책상품에는 붙지 않는다.
+        isExampleRow(x, r)
+          ? el('span.chip.example', { text: '예시·가이드', title: '예시 규제값으로 계산했습니다. 실행일·현장마다 다릅니다 — 정확한 조건은 상담사 문의.' })
+          : null,
         pickButton(x, r, store),
       ].filter(Boolean)) },
       { key: 'rate', label: '금리', num: true, render: (x) => x.rate != null ? el('div', {}, rateNotes(x)) : '—' },
@@ -190,4 +195,16 @@ function pickButton(row, r, store) {
       : '이 상품의 한도·LTV·DTI 를 최종 한도에 반영합니다',
     onClick: () => store.set('product.selectedVariantId', 고름 ? null : row.variantId),
   });
+}
+
+
+/**
+ * 이 행의 숫자가 예시 규제값에 기대고 있는가.
+ *  - 은행 주담대는 규제값이 예시면 언제나 예시다.
+ *  - 다른 상품도 **막은 상한이 예시**(예: 전세의 DSR)면 예시다. 정책상품 자체 조건은 정확하지만
+ *    그 위에 걸린 규제 상한이 예시라면 최종 숫자는 예시다 — 이걸 숨기면 안 된다.
+ */
+function isExampleRow(x, r) {
+  if (x.productId === 'general-mortgage') return Boolean(r.hasExamplePolicies);
+  return Boolean(x.binding?.source?.example);
 }

@@ -365,6 +365,24 @@ function banners() {
       ]),
       bannerToggle(),
     ]));
+  } else if (t.example?.length) {
+    // 은행 주담대는 예시 규제값으로 계산한다 — 실행일·현장마다 달라 정확히 낼 수 없다.
+    // 붉은 데모 배너와 다르다: 실무에서 쓰라고 있는 값이되, 결과마다 「예시」가 붙는다.
+    out.push(el('div.banner.warn', {}, [
+      el('span.msg', {}, [
+        el('b', { text: '은행 주담대는 예시 규제값으로 계산 중. ' }),
+        `${t.example.map((k) => ({ ltv: 'LTV', dsr: 'DSR', stress: '스트레스금리', bangongje: '방공제', mci: 'MCI' })[k] ?? k).join('·')} — `
+        + '실행일·현장마다 다릅니다. 정확한 조건은 상담사 문의. 정책상품(기금승계·디딤돌·보금자리)은 예시를 쓰지 않습니다.',
+      ]),
+      el('button.btn.sm', { type: 'button', text: '실제값 넣기', onClick: editPolicy }),
+      bannerToggle(),
+    ]));
+    if (t.unverified.length) {
+      out.push(el('div.banner.warn', {}, [
+        el('span.msg', { text: `미검증: ${t.unverified.join(', ')} — 원문 확인 전입니다.` }),
+        el('button.btn.sm', { type: 'button', text: '값 넣기', onClick: editPolicy }),
+      ]));
+    }
   } else if (t.unverified.length) {
     out.push(el('div.banner.warn', {}, [
       el('span.msg', {}, [

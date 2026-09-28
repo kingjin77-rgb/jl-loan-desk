@@ -104,6 +104,14 @@ function check(cond, ctx, checks) {
     return true;
   }
 
+  // exists 는 "값이 있는가/없는가" 자체를 묻는 연산자다. 아래의 null 가드보다
+  // 먼저 판정해야 한다 — 안 그러면 exists:false 가 영원히 통과하지 못한다.
+  if (op === 'exists') {
+    const pass = fn(actual, value);
+    checks.push({ label: label ?? path, path, op, required: value, actual, pass, unknown: false });
+    return pass;
+  }
+
   if (actual === undefined || actual === null) {
     // 값이 없다는 것은 대개 "해당 사항이 없다"는 뜻이다(신생아 없음, 나이 미입력 등).
     // 이건 프로그램이 판정을 못 한 것이 아니라 요건에 해당하지 않는 것이므로,

@@ -25,7 +25,7 @@ export function summaryStrip(r) {
   }
 
   cells.push(el('div.cell', {}, [
-    el('div.k', { text: '예상 한도' }),
+    el('div.k', { text: r.isExample ? '예상 한도 (예시)' : '예상 한도' }),
     el('div.v.accent', { text: formatKRW(r.limit.finalAmount) }),
     el('div.note', { text: r.limit.binding ? `${r.limit.binding.label}에서 막힘` : '산출 불가' }),
   ]));
@@ -42,7 +42,7 @@ export function summaryStrip(r) {
       title: r.paymentRate?.source ?? '',
     }),
     r.paymentRate && r.paymentRate.source !== '화면의 약정금리'
-      ? el('div.note.tiny.faint', { text: r.paymentRate.source })
+      ? el('div.note.tiny.faint', { text: r.paymentRate.source + (r.paymentRate.graceMonths ? ` · ${r.paymentRate.graceMonths / 12}년 거치 기준` : '') })
       : null,
   ].filter(Boolean)));
 
@@ -118,6 +118,21 @@ export function limitPanel(r) {
     // ★ 상품 기준 한도라는 사실을 맨 위에 밝힌다.
     //   규제 LTV·DSR 이 빠진 채 나온 숫자이므로, 실제 승인액보다 클 수 있다.
     //   이걸 숨기면 상담사가 규제 반영된 최종 한도로 오해한다.
+    r.limit.selectedProduct?.auto
+      ? el('div.callout', { style: 'margin-bottom:8px' }, [
+          el('b', { text: `${r.limit.selectedProduct.name} — 타입에 따른 기본 제안입니다. ` }),
+          '쓰지 않으려면 분양전환 패널의 「기금대출 승계 사용」을 끄십시오.',
+        ])
+      : null,
+    r.isExample
+      ? el('div.callout.warn', {}, [
+          el('div.script', {}, [
+            el('p', {}, [el('b', { text: '예시 규제값으로 계산한 가이드입니다.' })]),
+            el('p', { text: `${r.exampleCaps.join(' · ')}은(는) 설명용 예시 수치입니다. 실행일·현장·은행마다 다릅니다 — 정확한 조건은 상담사 문의. `
+              + '실제값을 넣으면(메뉴 → 규제 수치) 그 항목은 예시를 쓰지 않습니다.' }),
+          ]),
+        ])
+      : null,
     r.limit.basis === '상품 기준'
       ? el('div.callout.warn', {}, [
           el('div.script', {}, [
@@ -129,6 +144,13 @@ export function limitPanel(r) {
               '이 값들을 넣으면 한도가 더 내려갈 수 있습니다. 실제 승인액은 취급 기관 심사 결과에 따릅니다.' }),
           ]),
         ])
+      : null,
+    // 거치는 고객 본인이 고른다. 우리는 "거치할 수 있다"까지만 말한다.
+    // 숫자를 거치별로 늘어놓으면 우리가 정해 주는 것처럼 읽힌다.
+    r.graceScenarios
+      ? el('p.tiny.faint', { style: 'margin:0 0 10px', text:
+          `거치: ${r.graceScenarios.map((g) => g.label).join(' 또는 ')} 중 고객이 선택합니다. ` +
+          `위 월 상환액은 ${r.graceScenarios.find((g) => g.current)?.label ?? ''} 기준입니다.` })
       : null,
     // 도식이 먼저, 표가 그다음. 표는 그대로 남는다 — 도식이 표를 대체하지 않는다.
     limitChart(r),
@@ -348,6 +370,12 @@ export function conversionPanel(r, fold = {}) {
       { k: '잔금유예금', v: formatKRW(c.balance.잔금유예금), note: c.최소잔금유예금 != null ? `최소 ${formatKRW(c.최소잔금유예금)}` : '최소액 미설정' },
       { k: '분할납부 시 지금 필요액', v: formatKRW(c.분할납부시필요액), note: '분할납부액 − 납입보증금 + 보증금대출 − 본인준비금' },
       { k: '일시납 시 지금 필요액', v: formatKRW(c.일시납필요액), note: '필요자금 전액 (A − B + C − D)' },
+      ...(r.limit.selectedProduct?.productId === 'gigeum-seunggye'
+        ? [
+            { k: '기금승계로 조달', v: formatKRW(Math.min(r.limit.finalAmount, c.일시납필요액)), note: `${r.limit.selectedProduct.name} 한도 ${formatKRW(r.limit.finalAmount)}` },
+            { k: '그다음 마련할 금액', v: formatKRW(Math.max(0, c.일시납필요액 - r.limit.finalAmount)), note: '디딤돌·보금자리·은행·자기자금 — 중복 가능 여부는 취급점 확인' },
+          ]
+        : []),
     ]),
   ];
 
