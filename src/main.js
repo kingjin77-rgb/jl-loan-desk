@@ -235,6 +235,11 @@ function render({ keepRail = false } = {}) {
   // 한도만 막는 오류(규제수치 미입력)와 계산 자체가 불가능한 오류를 구분한다.
   // 전자에서는 상품 비교·분양전환은 그대로 보여 준다.
   const onlyLimitBlocked = hasErrors && result.errors.every((e) => e.blocks === 'limit');
+  // LTV·DSR 을 쓰지 않는 계산(상품 비교·분양전환)은 한도가 막혀도 보여 준다.
+  const 한도무관 = !hasErrors || onlyLimitBlocked;
+  // 고른 상품으로 한도가 나왔으면 한도·결론·자금수지·요약도 정상 표시한다.
+  // (규제 수치가 빠졌다는 사실은 한도 패널의 노란 띠가 알린다)
+  const 한도있음 = !hasErrors || (onlyLimitBlocked && result.limit?.basis === '상품 기준');
 
   document.body.dataset.tab = ui.tab;
   document.body.dataset.tools = ui.toolsOpen ? 'open' : 'closed';
@@ -246,13 +251,13 @@ function render({ keepRail = false } = {}) {
     replace(shell.banners, [...banners(), installBar()].filter(Boolean));
   }
 
-  replace(shell.summary, hasErrors ? [] : [summaryStrip(result)]);
+  replace(shell.summary, 한도있음 ? [summaryStrip(result)] : []);
 
   if (!keepRail) {
     replace(shell.rail, railPanels(result));
   }
 
-  replace(shell.results, resultPanels(result, hasErrors, onlyLimitBlocked));
+  replace(shell.results, resultPanels(result, { 한도무관, 한도있음 }));
   replace(shell.printFooter, [printFooter(result)]);
   replace(shell.tabbar, [tabbar(result)]);
 }
@@ -289,23 +294,21 @@ function railPanels(result) {
   ].filter(Boolean);
 }
 
-function resultPanels(result, hasErrors, onlyLimitBlocked = false) {
-  // 한도만 막힌 경우에도 살려 두는 것들 — LTV·DSR 을 쓰지 않는 계산이다.
-  const 한도무관 = !hasErrors || onlyLimitBlocked;
+function resultPanels(result, { 한도무관, 한도있음 }) {
   return [
     errorsPanel(result.errors),
-    hasErrors ? null : scriptPanel(result),
-    hasErrors ? null : limitPanel(result),
-    한도무관 ? productsPanel(result) : null,
+    한도있음 ? scriptPanel(result) : null,
+    한도있음 ? limitPanel(result) : null,
+    한도무관 ? productsPanel(result, { store }) : null,
     한도무관 ? conversionResultPanel(result, ui.collapsed) : null,
-    hasErrors ? null : fundsPanel(result),
-    hasErrors ? null : timelinePanel(result, fold('result-timeline', true)),
-    hasErrors ? null : scenarioPanel(result, fold('result-scenarios', true)),
-    hasErrors ? null : schedulePanelResult(result, {
+    한도있음 ? fundsPanel(result) : null,
+    한도있음 ? timelinePanel(result, fold('result-timeline', true)) : null,
+    한도있음 ? scenarioPanel(result, fold('result-scenarios', true)) : null,
+    한도있음 ? schedulePanelResult(result, {
       monthly: ui.monthlySchedule,
       onToggle: (v) => { ui.monthlySchedule = v; render(); },
       fold: fold('result-schedule', true),
-    }),
+    }) : null,
     warningsPanel(result),
     disclaimerPanel(),
   ].filter(Boolean);

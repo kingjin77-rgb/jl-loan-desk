@@ -23,7 +23,8 @@ import { buildTimeline } from '../core/timeline.js';
 import { jungdogeumPlan } from '../core/jungdogeum.js';
 import { janggeumPlan } from '../core/janggeum.js';
 import { won, formatKRW } from '../core/money.js';
-import { flattenProducts } from '../core/products.js';
+import { flattenProducts, productCap, productRate, termLimit } from '../core/products.js';
+import { evaluate } from '../core/eligibility.js';
 import {
   fundsNeeded, installmentCap, deferredBalance, deferredInterest, lhVerification,
 } from '../core/bunyangjeonhwan.js';
@@ -80,6 +81,7 @@ export function derive(input, policies, opts = {}) {
   // ── 4) 상한들
   const caps = [];
 
+  let ltvMissing = false;
   try {
     caps.push(ltvCap({
       appraisal,
@@ -93,8 +95,10 @@ export function derive(input, policies, opts = {}) {
     // ★ 이 오류는 **한도**를 막을 뿐이다. 상품 금리 비교와 분양전환 계산은
     //   LTV 를 쓰지 않으므로 계속 보여 준다 — 규제수치를 아직 못 채웠다는 이유로
     //   이미 확인된 상품 금리표까지 못 보게 되면 프로그램을 쓸 수가 없다.
-    if (e instanceof LtvRuleNotFoundError) errors.push({ field: 'ltv', message: e.message, blocks: 'limit' });
-    else throw e;
+    if (e instanceof LtvRuleNotFoundError) {
+      errors.push({ field: 'ltv', message: e.message, blocks: 'limit' });
+      ltvMissing = true;
+    } else throw e;
   }
 
   const newLoanForDsr = {
@@ -119,6 +123,51 @@ export function derive(input, policies, opts = {}) {
     regionGrade: input.borrower.regionGrade,
   }, policies.dsr));
 
+  // ── 4-b) 고른 상품
+  //
+  // 비교표에서 「이 상품으로 계산」을 누르면 그 상품이 최종 한도에 들어간다.
+  // 상품은 자기 최대한도와 자기 LTV·DTI 를 갖는다(디딤돌 공시가격 70%·DTI 60% 등).
+  //
+  // ★ 규제 LTV 표가 비어 있어도 이 경로로는 한도가 나와야 한다.
+  //   분양전환 상담에서 쓰는 것은 디딤돌·보금자리·기금승계이고, 그 LTV 는
+  //   상담일지에서 확인된 값이다. 규제표를 못 채웠다는 이유로 이미 확인된 상품까지
+  //   계산을 막으면 프로그램을 쓸 수가 없다.
+  let selectedProduct = null;
+  const wantVariant = input.product.selectedVariantId;
+  if (wantVariant && productDocs.length) {
+    const v = flattenProducts(productDocs).find((x) => x.variantId === wantVariant);
+    if (v) {
+      const eligCtx = eligibilityContext(input, houseValue);
+      // 만기는 상품이 허용하는 범위로 줄이고, **줄어든 만기로** 금리표를 조회한다.
+      const tl = termLimit(v, eligCtx);
+      const term = tl.maxYears != null
+        ? Math.min(input.product.termMonths, tl.maxYears * 12)
+        : input.product.termMonths;
+      const rate = productRate(v, { ...eligCtx, product: { ...input.product, termMonths: term } });
+
+      selectedProduct = {
+        variant: v,
+        eligibility: evaluate(v.eligibility, eligCtx),
+        rate,
+        termMonths: term,
+        termCapped: term < input.product.termMonths,
+      };
+
+      caps.push(productCap(v, eligCtx, { houseValue }));
+
+      if (v.limit?.dtiOverride != null) {
+        caps.push(dtiCap({
+          annualIncome: totalIncome(input.borrower),
+          existingDebts: input.borrower.existingDebts ?? [],
+          newLoan: newLoanForDsr,
+          regionGrade: input.borrower.regionGrade,
+          rateOverride: v.limit.dtiOverride,
+          rateLabel: v.name,
+        }, policies.dsr));
+      }
+    }
+  }
+
   // 상담사가 손으로 거는 상한(은행이 알려준 내부 한도 등)
   if (input.product.manualCap) {
     caps.push(makeCap({
@@ -130,11 +179,31 @@ export function derive(input, policies, opts = {}) {
   }
 
   // ── 5) 합성
+  //
+  // 규제 LTV 가 없어도 고른 상품이 자기 LTV·한도를 갖고 있으면 그것으로 낸다.
+  // 그 사실을 숨기지 않는다 — basis 와 missingRegulation 으로 화면에 표시한다.
+  const 상품기준 = ltvMissing && selectedProduct != null
+    && caps.some((c) => c.id === CAP_IDS.PRODUCT && c.applicable && Number.isFinite(c.amount));
+
   const limit = computeLimit({
     caps,
     deductions,
     requestedAmount: input.product.requestedAmount || null,
   });
+  limit.basis = 상품기준 ? '상품 기준' : '규제 기준';
+  limit.missingRegulation = 상품기준
+    ? caps.filter((c) => !c.applicable).map((c) => c.label).concat(['LTV(규제)'])
+    : [];
+  limit.selectedProduct = selectedProduct
+    ? {
+        variantId: selectedProduct.variant.variantId,
+        name: selectedProduct.variant.name,
+        eligible: selectedProduct.eligibility.eligible,
+        rate: selectedProduct.rate?.final ?? null,
+        termMonths: selectedProduct.termMonths,
+        termCapped: selectedProduct.termCapped,
+      }
+    : null;
 
   // ── 6) 개선 레버 — 하드코딩이 아니라 실제 재계산
   const levers = errors.length || opts.skipLevers ? [] : evaluateLevers(
@@ -151,10 +220,19 @@ export function derive(input, policies, opts = {}) {
     ? Math.min(input.product.requestedAmount, limit.finalAmount)
     : limit.finalAmount;
 
+  // ★ 상품을 골랐으면 그 상품의 금리·만기로 갚는다.
+  //   「디딤돌 기준」이라고 해놓고 화면의 약정금리 4.2% 로 월 상환액을 내면
+  //   상담사가 틀린 금액을 불러 준다. 상품 금리표가 비어 있을 때만 화면 값을 쓴다.
+  const 적용금리 = selectedProduct?.rate?.final ?? input.product.annualRate;
+  const 적용만기 = selectedProduct?.termMonths ?? input.product.termMonths;
+  const 금리출처 = selectedProduct?.rate?.final != null
+    ? `${selectedProduct.variant.name} 상품 금리표`
+    : '화면의 약정금리';
+
   const amortInput = {
     principal: loanAmount,
-    annualRate: input.product.annualRate,   // ← 약정금리. stress.forDsrOnly 가 아니다.
-    termMonths: input.product.termMonths,
+    annualRate: 적용금리,   // ← 약정금리. stress.forDsrOnly 가 아니다.
+    termMonths: 적용만기,
     method: input.product.method ?? METHODS.EQUAL_TOTAL,
     graceMonths: input.product.graceMonths ?? 0,
     startDate: input.product.firstPaymentDate ?? null,
@@ -163,10 +241,10 @@ export function derive(input, policies, opts = {}) {
 
   // ── 8) 금리 시나리오
   const scenarios = (input.product.scenarioDeltas ?? [0, 0.005, 0.01, 0.015]).map((d) => {
-    const r = amortize({ ...amortInput, annualRate: input.product.annualRate + d });
+    const r = amortize({ ...amortInput, annualRate: 적용금리 + d });
     return {
       label: d === 0 ? '기준' : `+${(d * 100).toFixed(1)}%p`,
-      rate: input.product.annualRate + d,
+      rate: 적용금리 + d,
       monthlyPayment: r.monthlyPayment ?? r.maxPaymentAfterGrace ?? r.firstPayment,
       firstPayment: r.firstPayment,
       totalInterest: r.totalInterest,
@@ -212,22 +290,7 @@ export function derive(input, policies, opts = {}) {
   //    상품 한도는 또 하나의 상한일 뿐이므로, 이미 만든 caps 와 함께 min 을 취한다.
   let products = null;
   if (productDocs.length && !opts.skipLevers) {
-    const eligibilityCtx = {
-      borrower: {
-        ...input.borrower,
-        annualIncomeCombined: totalIncome(input.borrower),
-      },
-      house: {
-        price: houseValue,
-        areaSqm: input.collateral.areaSqm,
-        // 디딤돌 「지방 소재 0.2%p 인하」 판정용. 새 입력을 만들지 않고
-        // 이미 있는 스트레스금리 지역구분을 그대로 쓴다 — 상담사가 같은 것을
-        // 두 번 입력하게 하면 두 값이 어긋난다.
-        isMetro: (input.borrower.stressRegion ?? '수도권') === '수도권',
-      },
-      lease: input.lease ?? {},
-      product: input.product,
-    };
+    const eligibilityCtx = eligibilityContext(input, houseValue);
     // 구입 상담에 전세대출이 후보로 끼면 엉뚱한 상품이 1순위로 추천된다.
     // 대출 종류가 맞는 상품만 비교한다.
     const kind = input.product.loanKind ?? '주택담보';
@@ -369,6 +432,8 @@ export function derive(input, policies, opts = {}) {
   result.levers = levers;
   result.loanAmount = loanAmount;
   result.payment = payment;
+  // 어느 금리로 갚는 계산을 했는지. 화면이 이걸 적어 줘야 상담사가 확인할 수 있다.
+  result.paymentRate = { rate: 적용금리, termMonths: 적용만기, source: 금리출처 };
   result.paymentByYear = byYear(payment.schedule);
   result.scenarios = scenarios;
   result.timeline = timeline;
@@ -438,4 +503,30 @@ function leverSet(input, deduction) {
   }
 
   return levers;
+}
+
+
+/**
+ * 자격 판정·금리 산출에 쓰는 컨텍스트.
+ *
+ * 고른 상품의 Cap 을 만들 때와 상품 비교표를 만들 때가 **같은 값**을 봐야 한다.
+ * 두 군데서 따로 만들면 한쪽만 고쳤을 때 조용히 어긋난다.
+ */
+function eligibilityContext(input, houseValue) {
+  return {
+    borrower: {
+      ...input.borrower,
+      annualIncomeCombined: totalIncome(input.borrower),
+    },
+    house: {
+      price: houseValue,
+      areaSqm: input.collateral.areaSqm,
+      // 디딤돌 「지방 소재 0.2%p 인하」 판정용. 새 입력을 만들지 않고
+      // 이미 있는 스트레스금리 지역구분을 그대로 쓴다 — 상담사가 같은 것을
+      // 두 번 입력하게 하면 두 값이 어긋난다.
+      isMetro: (input.borrower.stressRegion ?? '수도권') === '수도권',
+    },
+    lease: input.lease ?? {},
+    product: input.product,
+  };
 }

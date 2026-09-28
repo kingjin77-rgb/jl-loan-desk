@@ -57,6 +57,9 @@ export function defaultInput() {
       graceMonths: 0,
       requestedAmount: null,
       useRequestedForPayment: false,
+      // 비교표에서 「이 상품으로 계산」을 누른 상품. 고르면 그 상품의 한도·LTV·DTI 가
+      // 최종 한도에 들어간다. 규제 LTV 가 비어 있어도 이 경로로는 한도가 나온다.
+      selectedVariantId: null,
       manualCap: null,
       manualCapNote: '',
       firstPaymentDate: null,

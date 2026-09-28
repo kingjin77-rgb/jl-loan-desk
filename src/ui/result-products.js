@@ -10,7 +10,7 @@ import { el, panel, table } from './dom.js';
 import { formatKRW, formatPct } from '../core/money.js';
 import { josa } from '../core/hangul.js';
 
-export function productsPanel(r) {
+export function productsPanel(r, { store = null } = {}) {
   if (!r.products?.rows?.length) return null;
   const { rows, best } = r.products;
   const ok = rows.filter((x) => x.eligible);
@@ -60,7 +60,8 @@ export function productsPanel(r) {
       { key: 'name', label: '상품', render: (x) => el('div', {}, [
         el('div', {}, [el('b', { text: x.name })]),
         el('div.tiny.faint', { text: `${x.category}${x.kind === '전세' ? ' · 전세' : ''}` }),
-      ]) },
+        pickButton(x, r, store),
+      ].filter(Boolean)) },
       { key: 'rate', label: '금리', num: true, render: (x) => x.rate != null ? el('div', {}, rateNotes(x)) : '—' },
       { key: 'amount', label: '한도', num: true, render: (x) => el('div', {}, [
         el('div', { text: formatKRW(x.amount) }),
@@ -163,4 +164,26 @@ function termNote(x) {
   if (!blocked.length) return '상품 상한';
   const 최장 = blocked.reduce((a, b) => (a.maxYears >= b.maxYears ? a : b));
   return `${최장.label} 불가 — ${최장.reason}`;
+}
+
+
+/**
+ * 「이 상품으로 계산」.
+ *
+ * 누르면 그 상품의 한도·LTV·DTI 가 최종 한도에 들어간다.
+ * 규제 LTV 표가 비어 있어도 이 경로로는 한도가 나온다 — 분양전환 상담에서 쓰는
+ * 상품들은 상담일지에서 확인된 자기 LTV 를 갖고 있기 때문이다.
+ */
+function pickButton(row, r, store) {
+  if (!store) return null;
+  const 고른것 = r.limit?.selectedProduct?.variantId ?? null;
+  const 고름 = 고른것 === row.variantId;
+  return el(고름 ? 'button.chip.picked' : 'button.btn.sm.pick', {
+    type: 'button',
+    text: 고름 ? '✓ 이 상품으로 계산 중 (해제)' : '이 상품으로 계산',
+    title: 고름
+      ? '누르면 해제하고 규제 기준 한도로 돌아갑니다'
+      : '이 상품의 한도·LTV·DTI 를 최종 한도에 반영합니다',
+    onClick: () => store.set('product.selectedVariantId', 고름 ? null : row.variantId),
+  });
 }

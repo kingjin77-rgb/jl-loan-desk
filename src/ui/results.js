@@ -34,8 +34,17 @@ export function summaryStrip(r) {
   cells.push(el('div.cell', {}, [
     el('div.k', { text: r.payment.monthlyPayment != null ? '월 상환액' : '첫 회차 상환액' }),
     el('div.v', { text: formatKRW(monthly) }),
-    el('div.note', { text: `약정 ${formatPct(r.input.product.annualRate)} · ${Math.round(r.input.product.termMonths / 12)}년 ${r.input.product.method}` }),
-  ]));
+    // 상품을 골랐으면 그 상품 금리로 계산한 것이다. 화면의 약정금리를 적어 두면
+    // 상담사가 다른 금액을 불러 주게 된다.
+    el('div.note', {
+      text: `${formatPct(r.paymentRate?.rate ?? r.input.product.annualRate)}`
+        + ` · ${Math.round((r.paymentRate?.termMonths ?? r.input.product.termMonths) / 12)}년 ${r.input.product.method}`,
+      title: r.paymentRate?.source ?? '',
+    }),
+    r.paymentRate && r.paymentRate.source !== '화면의 약정금리'
+      ? el('div.note.tiny.faint', { text: r.paymentRate.source })
+      : null,
+  ].filter(Boolean)));
 
   cells.push(el('div.cell', {}, [
     el('div.k', { text: '총 이자' }),
@@ -106,6 +115,21 @@ export function limitPanel(r) {
   });
 
   const body = [
+    // ★ 상품 기준 한도라는 사실을 맨 위에 밝힌다.
+    //   규제 LTV·DSR 이 빠진 채 나온 숫자이므로, 실제 승인액보다 클 수 있다.
+    //   이걸 숨기면 상담사가 규제 반영된 최종 한도로 오해한다.
+    r.limit.basis === '상품 기준'
+      ? el('div.callout.warn', {}, [
+          el('div.script', {}, [
+            el('p', {}, [el('b', {
+              text: `${r.limit.selectedProduct?.name ?? '고른 상품'} 기준으로 계산했습니다 — 규제 상한이 빠진 숫자입니다.`,
+            })]),
+            el('p', { text:
+              `아직 채우지 못한 것: ${r.limit.missingRegulation.join(' · ')}. ` +
+              '이 값들을 넣으면 한도가 더 내려갈 수 있습니다. 실제 승인액은 취급 기관 심사 결과에 따릅니다.' }),
+          ]),
+        ])
+      : null,
     // 도식이 먼저, 표가 그다음. 표는 그대로 남는다 — 도식이 표를 대체하지 않는다.
     limitChart(r),
     dsrChart(r),

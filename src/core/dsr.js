@@ -122,9 +122,16 @@ export function dsrCap({ annualIncome, existingDebts = [], newLoan, tier = '은�
  * DTI 한도. 구조는 DSR 과 같고, 분자에서 **기타대출은 이자만** 잡는다는 점이 다르다.
  * 적용 대상이 아니면 미적용 Cap 을 돌려준다.
  */
-export function dtiCap({ annualIncome, existingDebts = [], newLoan, regionGrade }, config) {
+/**
+ * @param {number} [p.rateOverride] 상품이 정한 DTI 한도율(예: 디딤돌 60%).
+ *   정책자금은 규제지역과 무관하게 상품 자체의 DTI 를 쓴다. 이 값이 오면
+ *   지역별 dtiLimits 대신 이것을 쓰고, 산식에 출처를 적어 둔다.
+ * @param {string} [p.rateLabel] 그 출처 이름(상품명).
+ */
+export function dtiCap({ annualIncome, existingDebts = [], newLoan, regionGrade, rateOverride = null, rateLabel = null }, config) {
   const source = sourceOf(config);
-  const limitRate = config?.dtiLimits?.[regionGrade];
+  const limitRate = rateOverride ?? config?.dtiLimits?.[regionGrade];
+  const label = rateOverride != null && rateLabel ? `DTI 한도 (${rateLabel})` : 'DTI 한도';
 
   if (limitRate == null) {
     return inapplicableCap({
@@ -137,7 +144,7 @@ export function dtiCap({ annualIncome, existingDebts = [], newLoan, regionGrade 
 
   const income = won(annualIncome);
   if (income <= 0) {
-    return makeCap({ id: CAP_IDS.DTI, label: 'DTI 한도', amount: 0, formula: '연소득 미입력', source });
+    return makeCap({ id: CAP_IDS.DTI, label, amount: 0, formula: '연소득 미입력', source });
   }
 
   // DTI: 주담대는 원리금, 기타대출은 이자만.
@@ -150,7 +157,7 @@ export function dtiCap({ annualIncome, existingDebts = [], newLoan, regionGrade 
 
   if (allowable <= 0) {
     return makeCap({
-      id: CAP_IDS.DTI, label: 'DTI 한도', amount: 0,
+      id: CAP_IDS.DTI, label, amount: 0,
       formula: `연소득 ${formatKRW(income)} × ${formatPct(limitRate, 0)} − 기존부채 ${formatKRW(existing.total)} → 여력 없음`,
       source,
     });
@@ -169,13 +176,13 @@ export function dtiCap({ annualIncome, existingDebts = [], newLoan, regionGrade 
 
   return makeCap({
     id: CAP_IDS.DTI,
-    label: 'DTI 한도',
+    label,
     amount,
     formula:
       `(연소득 ${formatKRW(income)} × ${formatPct(limitRate, 0)}` +
       (existing.total ? ` − 기존부채 이자 ${formatKRW(existing.total)}` : '') +
       `) = 연 ${formatKRW(allowable)} 역산`,
-    inputs: { 연소득: income, 한도율: limitRate, 규제지역: regionGrade, 기존부채연이자: existing.total },
+    inputs: { 연소득: income, 한도율: limitRate, 한도율출처: rateLabel ?? `${regionGrade} 지역 규제`, 규제지역: regionGrade, 기존부채연이자: existing.total },
     source,
   });
 }
