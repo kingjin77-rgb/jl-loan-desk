@@ -14,7 +14,7 @@ function details(children, label = '상세 설정') {
     el('div', { style: 'padding-top:8px' }, children.filter(Boolean)),
   ]);
 }
-import { moneyField, pctField, intField, textField, dateField, selectField, segField, checkbox, editedChip, autoChip } from './fields.js';
+import { moneyField, pctField, intField, textField, dateField, selectField, segField, checkbox, editedChip, autoChip, inlineMoney, inlinePct } from './fields.js';
 import { OPTIONS } from '../state/defaults.js';
 import { formatKRW, formatNumber } from '../core/money.js';
 import { regionKeys } from '../core/bangongje.js';
@@ -48,7 +48,8 @@ export function complexPanel({ store, ctx, mine, onPickComplex, onImportComplex,
           ...sampleOpts,
         ],
         s.complexId ?? '',
-        (v) => (v ? onPickComplex(v) : onClearComplex())
+        (v) => (v ? onPickComplex(v) : onClearComplex()),
+        { 'aria-label': '단지 선택' }
       ),
     ]),
   ]);
@@ -148,16 +149,14 @@ export function borrowerPanel({ store, errors, autoValues }) {
 
   const debts = el('div.rows', {}, (b.existingDebts ?? []).map((d, i) => el('div.row-item', {}, [
     select(OPTIONS.debtKind, d.kind, (v) => updateDebt(store, i, { kind: v })),
-    el('input.num', {
-      type: 'text', inputmode: 'numeric', placeholder: '잔액',
-      value: d.balance ? formatNumber(d.balance) : '',
-      onInput: (e) => updateDebt(store, i, { balance: parseMoney(e.target.value) }),
-      title: '마이너스통장은 사용액이 아니라 한도금액을 넣으십시오',
+    // ★ 만원 단위. 다른 금액칸과 단위가 달라서는 안 된다.
+    inlineMoney(d.balance, (v) => updateDebt(store, i, { balance: v }), {
+      placeholder: '잔액(만원)',
+      label: `기존부채 ${i + 1} 잔액(만원)`,
+      title: '만원 단위입니다. 마이너스통장은 사용액이 아니라 한도금액을 넣으십시오.',
     }),
-    el('input.num', {
-      type: 'text', inputmode: 'decimal', placeholder: '금리%',
-      value: d.rate ? (d.rate * 100).toFixed(2) : '',
-      onInput: (e) => updateDebt(store, i, { rate: (Number(e.target.value) || 0) / 100 }),
+    inlinePct(d.rate, (v) => updateDebt(store, i, { rate: v }), {
+      label: `기존부채 ${i + 1} 금리(%)`,
     }),
     el('button.x', { type: 'button', text: '×', title: '삭제', onClick: () => removeDebt(store, i) }),
   ])));
@@ -189,9 +188,6 @@ export function borrowerPanel({ store, errors, autoValues }) {
   ].filter(Boolean), { id: 'panel-borrower' });
 }
 
-function parseMoney(v) {
-  return Number(String(v).replace(/[^\d]/g, '')) || 0;
-}
 function addDebt(store) {
   const list = [...(store.get().borrower.existingDebts ?? []), { kind: '신용대출', balance: 0, rate: 0.06 }];
   store.set('borrower.existingDebts', list);

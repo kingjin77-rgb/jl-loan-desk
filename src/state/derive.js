@@ -238,8 +238,17 @@ export function derive(input, policies, opts = {}) {
       termMonths: input.product.termMonths,
       method: input.product.method,
       graceMonths: input.product.graceMonths,
-      // 상품 한도 외의 상한. 전세 상품은 LTV 가 무의미하므로 화면에서 구분해 보여준다.
-      otherCaps: caps.filter((c) => c.id !== CAP_IDS.MANUAL),
+      // 상품 한도 외의 상한.
+      //
+      // ★ 전세자금대출에는 LTV·방공제·MCI 를 적용하지 않는다. 담보가 아니라 임차보증금
+      //   기준이기 때문이다. 이걸 빼지 않으면 담보가액이 0인 전세 상담에서 LTV 한도가
+      //   0원이 되어 「버팀목 0원 — LTV 한도에서 막힘」 이 나온다(실제로 그랬다).
+      //   DSR 은 전세에도 걸리므로 남긴다.
+      otherCaps: caps.filter((c) => {
+        if (c.id === CAP_IDS.MANUAL) return false;
+        if (kind === '전세' && (c.id === CAP_IDS.LTV || c.id === CAP_IDS.MCI)) return false;
+        return true;
+      }),
     });
     // 일반 주담대는 금리표가 없다 — 화면의 약정금리를 그대로 쓰고,
     // 금리가 정해졌으니 월 상환액도 여기서 다시 계산한다(안 하면 표에 "—" 로 남는다).

@@ -157,3 +157,26 @@
   .type-row .control{flex-direction:column;}
   .complex-actions .btn{flex:1 1 calc(50% - var(--s2));}
 }
+
+/* 손가락으로 누를 수 있는 크기.
+   「자세히」가 높이 15px, 체크박스가 20px 이어서 320px 화면에서 누르기 어려웠다.
+   보이는 크기는 그대로 두고 누를 영역만 넓힌다(레이아웃이 밀리지 않는다). */
+@media (pointer: coarse) {
+  /* layout.css 의 `.banner .detail-toggle{padding:0}` 이 클래스 두 개라 더 강하다.
+     같은 구체성으로 맞춰야 적용된다. */
+  .banner .detail-toggle {
+    position: relative;
+    padding: 8px 10px;
+    margin: -8px -4px;
+  }
+  .checks label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+  }
+  .checks input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+  }
+}

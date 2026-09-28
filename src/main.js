@@ -141,10 +141,25 @@ function refreshMyComplexes() {
 
 boot();
 
+/**
+ * localStorage 안전 접근.
+ *
+ * 사파리 사생활 보호 모드나 「쿠키·사이트 데이터 차단」 설정에서는 localStorage 에
+ * **손만 대도 예외가 난다**(getter 자체가 SecurityError 를 던진다).
+ * 이걸 감싸지 않아 앱이 「설정을 불러오지 못했습니다 — denied」 로 죽고 있었다.
+ * 저장을 못 하는 것은 참을 수 있지만 계산을 못 하는 것은 안 된다.
+ */
+function lsGet(key) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+function lsSet(key, value) {
+  try { localStorage.setItem(key, value); return true; } catch { return false; }
+}
+
 async function boot() {
   const root = $('#app');
   try {
-    const loaded = await loadAll(localStorage.getItem('jl-loan-desk.profile') || null);
+    const loaded = await loadAll(lsGet('jl-loan-desk.profile') || null);
     ctx = { ...loaded, complexDoc: null, origins: {} };
   } catch (e) {
     replace(root, [fatal(e)]);
@@ -300,7 +315,9 @@ function resultPanels(result, hasErrors, onlyLimitBlocked = false) {
 
 function topbarChildren(result) {
   return [
-    el('div.brand', {}, [
+    // h1 으로 둔다. 페이지에 h1 이 하나도 없으면 스크린리더가 문서 제목을 못 읽고,
+    // 제목 단위 이동(h 키)도 안 된다. 보이는 모양은 .brand 스타일 그대로다.
+    el('h1.brand', {}, [
       el('span.dot'),
       el('span', {}, ['JL 대출데스크 ', el('span.sub', { text: '법무법인 제이엘' })]),
     ]),
@@ -704,7 +721,7 @@ async function switchProfile(key) {
   try {
     const loaded = await loadAll(key);
     ctx = { ...loaded, complexDoc: ctx.complexDoc, origins: ctx.origins };
-    localStorage.setItem('jl-loan-desk.profile', key);
+    lsSet('jl-loan-desk.profile', key);   // 저장 못 해도 이번 세션은 바뀐다
     render();
   } catch (e) {
     alert(e.message);

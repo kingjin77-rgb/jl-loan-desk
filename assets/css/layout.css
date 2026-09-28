@@ -6,7 +6,9 @@
   background:var(--bg);border-bottom:1px solid var(--border);
   padding:var(--s2) var(--s4);display:flex;align-items:center;gap:var(--s4);flex-wrap:wrap;
 }
-.topbar .brand{display:flex;align-items:center;gap:var(--s2);font-weight:800;font-size:var(--fs-md);}
+.topbar .brand{display:flex;align-items:center;gap:var(--s2);font-weight:800;font-size:var(--fs-md);
+  /* h1 이므로 브라우저 기본 여백·크기를 지운다 */
+  margin:0;line-height:inherit;}
 .topbar .brand .dot{width:8px;height:8px;border-radius:2px;background:var(--accent);}
 .topbar .brand .sub{font-weight:500;color:var(--ink-faint);font-size:var(--fs-xs);}
 .topbar .spacer{flex:1;}

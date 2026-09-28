@@ -6,7 +6,7 @@
  * 비율 합계는 입력하는 동안 계속 보여 준다 — 100%가 안 맞는 게 제일 흔한 실수다.
  */
 
-import { el, field, select, segmented } from './dom.js';
+import { el, field, select, segmented, replace } from './dom.js';
 import { moneyField, pctField, intField, textField, dateField, selectField, segField } from './fields.js';
 import { emptyForm, buildComplexDoc, docToForm, ratioCheck, expandRounds } from '../core/complex-builder.js';
 import { validateComplex, ValidationError } from '../data/validate.js';
@@ -45,10 +45,12 @@ export function openComplexEditor({ doc = null, policies, onSave, onCancel = () 
     if (ratioBox) {
       const rc = ratioCheck(form);
       ratioBox.className = `callout ${rc.ok ? 'ok' : 'warn'}`;
-      ratioBox.replaceChildren(
+      // ★ replaceChildren(null) 은 문자열 "null" 을 그대로 넣는다.
+      //   화면에 "합계 100% ✓null" 이 찍혀 있었다. replace() 는 null 을 걸러 낸다.
+      replace(ratioBox, [
         el('b', { text: rc.message }),
         rc.ok ? null : el('div.tiny', { text: '계약금 + 중도금 전 회차 + 잔금 = 100% 가 되어야 합니다.' }),
-      );
+      ]);
     }
     if (roundsBox) {
       const rs = expandRounds(form);
@@ -61,13 +63,15 @@ export function openComplexEditor({ doc = null, policies, onSave, onCancel = () 
     const bgKeys = regionKeys(policies?.bangongje);
     const rounds = expandRounds(form);
 
-    body.replaceChildren(
+    replace(body, [
       el('h2', { text: doc ? '단지 수정' : '단지 만들기' }),
       el('p.tiny.faint', { style: 'margin:2px 0 14px', text:
         '입주자모집공고를 보면서 그대로 입력하십시오. 이 기기에만 저장되며 인터넷에 올라가지 않습니다.' }),
 
       sec('단지'),
-      textField('단지명', form.name, (v) => setQuiet('name', v), { placeholder: '예) 양주 백석 모아엘가 그랑데' }),
+      textField('단지명', form.name, (v) => setQuiet('name', v), {
+        placeholder: '예) 양주 백석 모아엘가 그랑데', chip: requiredChip(),
+      }),
       el('div.field', {}, [
         el('label', { text: '소재지' }),
         el('div.control', {}, [
@@ -82,7 +86,7 @@ export function openComplexEditor({ doc = null, policies, onSave, onCancel = () 
 
       sec('입주'),
       textField('입주예정 / 지정기간 개시', form.moveInStart, (v) => setQuiet('moveInStart', v), {
-        placeholder: '2028-06-01 또는 2028-06', hint: '연월만 써도 됩니다',
+        placeholder: '2028-06-01 또는 2028-06', hint: '연월만 써도 됩니다', chip: requiredChip(),
       }),
       textField('입주지정기간 종료', form.moveInEnd, (v) => setQuiet('moveInEnd', v), {
         placeholder: '2028-08-31 (비워도 됨)',
@@ -102,7 +106,7 @@ export function openComplexEditor({ doc = null, policies, onSave, onCancel = () 
           el('input', { type: 'number', step: '0.01', value: t.areaSqm ?? '', placeholder: '전용㎡',
             onInput: (e) => setTypeQuiet(i, 'areaSqm', e.target.value === '' ? null : Number(e.target.value)) }),
         ]),
-        moneyField('분양가', t.price, (v) => setType(i, 'price', v)),
+        moneyField('분양가', t.price, (v) => setType(i, 'price', v), { chip: requiredChip() }),
         moneyField('발코니확장', t.expansion, (v) => setType(i, 'expansion', v), { placeholder: '0' }),
         moneyField('옵션', t.option, (v) => setType(i, 'option', v), { placeholder: '0' }),
       ])),
@@ -144,13 +148,13 @@ export function openComplexEditor({ doc = null, policies, onSave, onCancel = () 
         placeholder: '입주자모집공고문(2026.3.5)', hint: '나중에 값이 의심스러울 때 되짚을 단서입니다',
       }),
       textField('작성자', form.author, (v) => setQuiet('author', v)),
-    );
+    ]);
 
-    foot.replaceChildren(
+    replace(foot, [
       el('div.err', { id: 'editor-err' }),
       el('button.btn', { type: 'button', text: '취소', onClick: () => { dlg.close(); onCancel(); } }),
       el('button.btn.primary', { type: 'button', text: '저장', onClick: trySave }),
-    );
+    ]);
   }
 
   // 타입의 텍스트/숫자 입력은 다시 그리면 커서가 튀므로 값만 바꾼다
@@ -170,7 +174,7 @@ export function openComplexEditor({ doc = null, policies, onSave, onCancel = () 
     } catch (e) {
       const box = foot.querySelector('#editor-err');
       const msgs = e instanceof ValidationError ? e.problems : [e.message];
-      box.replaceChildren(...msgs.map((m) => el('div', { text: '· ' + m })));
+      replace(box, msgs.map((m) => el('div', { text: '· ' + humanize(m) })));
       box.scrollIntoView({ block: 'nearest' });
       return;
     }
@@ -181,6 +185,37 @@ export function openComplexEditor({ doc = null, policies, onSave, onCancel = () 
 
   function sec(title) {
     return el('h3.sec', { text: title });
+  }
+
+  function requiredChip() {
+    return el('span.chip.req', { text: '필수', title: '이 칸이 비면 저장되지 않습니다' });
+  }
+
+  /**
+   * 검증 메시지를 상담사 말로 바꾼다.
+   *
+   * validate.js 의 메시지는 JSON 을 손으로 쓰는 사람을 위한 것이라 경로가 그대로 나온다
+   * ("moveIn.입주지정기간.start 또는 moveIn.예정시기 중 하나는 있어야 합니다").
+   * 에디터에서 그걸 그대로 보여 주면 상담사가 어느 칸을 채워야 하는지 알 수 없다.
+   * 아는 경로는 **화면의 칸 이름**으로 바꿔 준다. 모르는 메시지는 그대로 둔다
+   * (틀린 안내보다 낯선 안내가 낫다).
+   */
+  function humanize(msg) {
+    const MAP = [
+      [/^moveIn 블록이 없습니다.*/, '「입주예정 / 지정기간 개시」를 입력하십시오. 입주시기가 없으면 중도금→잔금 계산을 할 수 없습니다.'],
+      [/^moveIn\.입주지정기간\.start.*/, '「입주예정 / 지정기간 개시」를 입력하십시오 (예: 2028-06-01 또는 2028-06).'],
+      [/^moveIn\.입주지정기간\.end "([^"]*)".*/, (m) => `「입주지정기간 종료」의 "${m[1]}" 형식이 맞지 않습니다 (예: 2028-08-31).`],
+      [/^name\b.*/, '「단지명」을 입력하십시오.'],
+      [/^types\b.*없습니다.*/, '타입을 하나 이상 넣고 「분양가」를 입력하십시오.'],
+      [/^location\.regionGrade\b.*/, '「규제지역」을 고르십시오.'],
+      [/^location\.bangongjeRegion\b.*/, '「방공제 지역」을 고르십시오.'],
+    ];
+    for (const [re, to] of MAP) {
+      const m = msg.match(re);
+      if (m) return typeof to === 'function' ? to(m) : to;
+    }
+    // 경로로 시작하는 낯선 메시지는 경로 부분만 떼어 읽기 쉽게 한다
+    return msg;
   }
 
   draw();

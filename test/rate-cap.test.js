@@ -148,3 +148,34 @@ test('나이를 모르면 막지 않는다 — 모른다고 상담을 멈추면 
 test('만기규칙이 없으면 maxTermYears 를 쓴다', () => {
   assert.equal(termLimit({ maxTermYears: 30 }, {}).maxYears, 30);
 });
+
+/**
+ * 전세자금대출 경로 — 담보가 아니라 보증금 기준이다.
+ *
+ * 담보가액이 0인 전세 상담에서 LTV 상한을 같이 min 에 넣으면 한도가 0원이 되고,
+ * 화면에 「버팀목 0원 — LTV 한도에서 막힘」이 뜬다. 실제로 그렇게 나왔다.
+ */
+test('★ 전세 상품에는 LTV 상한을 적용하지 않는다', async () => {
+  const { compareProducts } = await import('../src/core/compare.js');
+  const { makeCap, CAP_IDS } = await import('../src/core/cap.js');
+
+  const 버팀목 = {
+    variantId: 'beotimmok-general', name: '버팀목 일반', kind: '전세',
+    eligibility: { and: [{ path: 'borrower.ownedHouses', op: 'eq', value: 0, label: '무주택' }] },
+    limit: { max: 200_000_000, depositRatio: 0.8 },
+    rateTable: { incomeBands: [null], termYears: [10], matrix: [[0.027]] },
+    repaymentMethods: ['만기일시'], maxTermYears: 10,
+  };
+  const ctx = { borrower: { ownedHouses: 0, annualIncomeCombined: 45_000_000 }, lease: { deposit: 250_000_000 }, product: { termMonths: 120 } };
+
+  // 담보가액 0 → LTV 상한 0원. 이것이 섞이면 한도가 0이 된다.
+  const ltv0 = makeCap({ id: CAP_IDS.LTV, label: 'LTV 한도', amount: 0, formula: '담보 없음' });
+  const dsr = makeCap({ id: CAP_IDS.DSR, label: 'DSR 한도', amount: 300_000_000, formula: 'DSR' });
+
+  const 잘못 = compareProducts([버팀목], ctx, { houseValue: 0, termMonths: 120, otherCaps: [ltv0, dsr] });
+  assert.equal(잘못[0].amount, 0, '이 상태가 버그였다 — LTV 를 섞으면 0원이 된다');
+
+  const 맞음 = compareProducts([버팀목], ctx, { houseValue: 0, termMonths: 120, otherCaps: [dsr] });
+  assert.equal(맞음[0].amount, 200_000_000, '보증금 2.5억 × 80% = 2억 과 상품한도 2억 중 최소');
+  assert.equal(맞음[0].binding.id, 'PRODUCT');
+});

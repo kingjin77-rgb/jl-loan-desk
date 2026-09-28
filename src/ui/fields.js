@@ -181,3 +181,38 @@ export function editedChip(onRevert) {
 export function autoChip() {
   return el('span.chip.auto', { title: '단지 데이터에서 자동으로 채워진 값입니다.', text: '단지' });
 }
+
+/**
+ * 표 안에 들어가는 좁은 금액 칸 — **만원 단위**.
+ *
+ * 기존부채 행처럼 라벨을 붙일 자리가 없는 곳에 쓴다. moneyField 와 단위가 같아야 한다.
+ * 이 칸만 원 단위였던 탓에 상담사가 「20000」(2억을 의도)을 치면 2만원이 들어가
+ * DSR 이 전혀 줄지 않았다. 한도를 과대계상하는 종류의 오류다.
+ */
+export function inlineMoney(value, onChange, opts = {}) {
+  return typingInput({
+    class: 'num',
+    type: 'text',
+    inputmode: 'numeric',
+    value: value ? formatNumber(toManwon(value)) : '',
+    placeholder: opts.placeholder ?? '만원',
+    title: opts.title ?? '',
+    'aria-label': opts.label ?? '금액(만원)',
+    onBlur: (e) => {
+      const v = parseManwon(e.target.value);
+      e.target.value = v ? formatNumber(toManwon(v)) : '';
+    },
+  }, (raw) => onChange(parseManwon(raw)));
+}
+
+/** 표 안에 들어가는 좁은 퍼센트 칸. 값은 비율(0.06)로 돌려준다. */
+export function inlinePct(ratio, onChange, opts = {}) {
+  return typingInput({
+    class: 'num',
+    type: 'text',
+    inputmode: 'decimal',
+    value: ratio ? (ratio * 100).toFixed(2).replace(/\.?0+$/, '') : '',
+    placeholder: opts.placeholder ?? '금리%',
+    'aria-label': opts.label ?? '금리(%)',
+  }, (raw) => onChange(parsePct(raw)));
+}

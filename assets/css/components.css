@@ -146,3 +146,11 @@ h3.sub {
   font-weight: 700;
   color: var(--ink-sub);
 }
+
+/* 에디터의 「필수」 표시. 저장 눌렀을 때 비로소 알게 되면 안 된다. */
+.chip.req {
+  background: var(--warn-soft);
+  color: var(--warn);
+  border-color: transparent;
+  font-weight: 700;
+}
