@@ -20,6 +20,7 @@ import {
   timelinePanel, fundsPanel, warningsPanel, errorsPanel, conversionPanel as conversionResultPanel } from './ui/results.js';
 import { productsPanel } from './ui/result-products.js';
 import { openComplexEditor } from './ui/complex-editor.js';
+import { openPolicyEditor } from './ui/policy-editor.js';
 import * as complexStore from './io/complex-store.js';
 import { expandYearMonth } from './core/dates.js';
 import { formatKRW } from './core/money.js';
@@ -341,6 +342,7 @@ function topbarChildren(result) {
       el('button.btn.sm', { type: 'button', text: '저장', onClick: () => saveRecord(result) }),
       el('button.btn.sm', { type: 'button', text: '불러오기', onClick: openRecords }),
       el('button.btn.sm', { type: 'button', text: '내보내기', onClick: () => exportRecord(result) }),
+      el('button.btn.sm', { type: 'button', text: '규제 수치', title: 'LTV·DSR·방공제 등을 직접 넣습니다', onClick: editPolicy }),
       el('label.btn.sm', {}, ['파일 열기', el('input', {
         type: 'file', accept: '.json', class: 'sr-only',
         onChange: (e) => { const f = e.target.files?.[0]; if (f) importRecordFile(f); e.target.value = ''; },
@@ -369,7 +371,17 @@ function banners() {
         el('b', { text: '미검증 설정값 사용 중. ' }),
         `${t.unverified.join(', ')} 의 수치가 아직 원문으로 확인되지 않았습니다.`,
       ]),
+      // 경고만 띄우고 고칠 방법을 안 주면 경고를 무시하게 된다.
+      el('button.btn.sm', { type: 'button', text: '값 넣기', onClick: editPolicy }),
       bannerToggle(),
+    ]));
+  }
+
+  // 직접 넣은 값이 조용히 끼면 어느 숫자가 어디서 왔는지 모르게 된다. 항상 보이게 둔다.
+  if (ctx.overrideCount > 0) {
+    out.push(el('div.banner.info', {}, [
+      el('span.msg', { text: `규제 수치 ${ctx.overrideCount}칸을 직접 입력한 값으로 계산하고 있습니다.` }),
+      el('button.btn.sm', { type: 'button', text: '보기·수정', onClick: editPolicy }),
     ]));
   }
 
@@ -718,6 +730,22 @@ function resetAll() {
   ctx.complexDoc = null;
   autoValues = {};
   currentRecordId = null;
+}
+
+/** 규제 수치 입력 화면. 저장하면 설정을 다시 읽어 즉시 반영한다. */
+function editPolicy() {
+  openPolicyEditor({
+    policies: ctx.policies,
+    onSave: async () => {
+      try {
+        const loaded = await loadAll(lsGet('jl-loan-desk.profile') || null);
+        ctx = { ...loaded, complexDoc: ctx.complexDoc, origins: ctx.origins };
+        render();
+      } catch (e) {
+        alert(e.message);
+      }
+    },
+  });
 }
 
 async function switchProfile(key) {

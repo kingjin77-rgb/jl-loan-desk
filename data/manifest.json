@@ -13,7 +13,7 @@
   "defaultProfile": "데모",
   "profiles": {
     "실무": {
-      "label": "실무 (일부 입력 — 규제수치 미입력)",
+      "label": "실무",
       "policy": {
         "ltv": "policy/ltv.2026-09-19.json",
         "dsr": "policy/dsr.2026-09-19.json",

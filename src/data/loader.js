@@ -6,6 +6,7 @@
  */
 
 import { validatePolicy, validateComplex, validateMeta, collectUnsetValues, collectTrustFlags } from './validate.js';
+import { loadOverrides, applyAll, countOverrides } from '../io/policy-overrides.js';
 
 const DATA_ROOT = new URL('../../data/', import.meta.url);
 
@@ -68,6 +69,13 @@ export async function loadAll(profileName = null) {
     }
   }
 
+  // ★ 상담사가 화면에서 넣은 규제 수치를 마지막에 얹는다.
+  //   파일은 그대로 두고 복사본에만 얹으므로, 원본이 무엇이었는지가 남는다.
+  //   trust/unset 은 **얹은 뒤의 값**으로 다시 본다 — 안 그러면 다 채웠는데도
+  //   붉은 경고가 안 사라진다.
+  const overrides = loadOverrides();
+  const effective = applyAll(policies, overrides);
+
   let complexIndex = { complexes: [] };
   try {
     complexIndex = await getJSON(manifest.complexes);
@@ -80,12 +88,15 @@ export async function loadAll(profileName = null) {
     profileName: name,
     profileLabel: profile.label ?? name,
     profiles: Object.entries(manifest.profiles).map(([k, v]) => ({ key: k, label: v.label ?? k })),
-    policies,
+    policies: effective,
+    policiesFromFile: policies,   // 원본 — "무엇을 덮어썼는지" 비교용
+    overrides,
+    overrideCount: countOverrides(overrides),
     products,
     productWarnings,
     complexIndex,
-    trust: collectTrustFlags(policies),
-    unset: collectUnsetValues(policies),
+    trust: collectTrustFlags(effective),
+    unset: collectUnsetValues(effective),
   };
 }
 
