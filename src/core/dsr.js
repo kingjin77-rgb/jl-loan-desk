@@ -10,7 +10,7 @@
  */
 
 import { won, formatKRW, formatPct } from './money.js';
-import { makeCap, inapplicableCap, CAP_IDS } from './cap.js';
+import { makeCap, inapplicableCap, CAP_IDS, usesExample } from './cap.js';
 import { principalFromAnnualPayment, existingDebtAnnualPayment } from './invert.js';
 import { METHODS } from './amortize.js';
 
@@ -25,6 +25,9 @@ import { METHODS } from './amortize.js';
  */
 export function dsrCap({ annualIncome, existingDebts = [], newLoan, tier = '은행권', requestedAmount = null }, config) {
   const source = sourceOf(config);
+  // 이 계산이 읽는 칸(한도율·산정만기·기존부채 규칙)이 예시로 메워졌을 때만 「예시」.
+  source && (source.example = usesExample(config?.meta,
+    `limits.${tier}`, 'dsrMaturityCapMonths.주택담보대출', 'existingDebtRules', 'exemptions'));
   const income = won(annualIncome);
 
   const limitRate = config?.limits?.[tier];
@@ -130,6 +133,8 @@ export function dsrCap({ annualIncome, existingDebts = [], newLoan, tier = '은�
  */
 export function dtiCap({ annualIncome, existingDebts = [], newLoan, regionGrade, rateOverride = null, rateLabel = null }, config) {
   const source = sourceOf(config);
+  source && (source.example = rateOverride == null
+    && usesExample(config?.meta, 'dtiLimits', 'dtiMaturityCapMonths', 'existingDebtRules'));
   const limitRate = rateOverride ?? config?.dtiLimits?.[regionGrade];
   const label = rateOverride != null && rateLabel ? `DTI 한도 (${rateLabel})` : 'DTI 한도';
 

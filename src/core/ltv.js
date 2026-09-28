@@ -10,7 +10,7 @@
  */
 
 import { won, formatKRW, formatPct } from './money.js';
-import { makeCap, CAP_IDS } from './cap.js';
+import { makeCap, CAP_IDS, usesExample } from './cap.js';
 
 export const APPRAISAL_BASIS = {
   분양가: '분양가',
@@ -42,7 +42,13 @@ export function ltvCap({ appraisal, regionGrade, ownedHouses, purpose = '구입'
   }
 
   // 주택가격 구간별 차등이 있으면 적용 (예: 15억 이하 / 15~25억 / 25억 초과)
-  const tier = matchTier(config?.priceTiers, houseValue);
+  // ★ 총액 상한(15억 이하 6억 등)은 **규제지역에만** 있다. regionGrades 가 적힌 구간은
+  //   그 지역에서만 맞춘다 — 비규제에 6억 상한을 걸면 한도를 잘못 깎는다.
+  const tier = matchTier(config?.priceTiers, houseValue, regionGrade);
+  // 이 규칙·구간이 예시로 메워진 칸이면 결과에 「예시」가 붙는다. 파일 전체가 아니라 이 칸 기준.
+  source && (source.example = usesExample(config?.meta,
+    `rules[${(config?.rules ?? []).indexOf(rule)}].ltv`,
+    tier ? `priceTiers[${config.priceTiers.indexOf(tier)}]` : null));
   const rate = tier?.ltv != null ? Math.min(rule.ltv, tier.ltv) : rule.ltv;
 
   const gross = houseValue * rate;
@@ -110,12 +116,14 @@ function eq(a, b) {
   return String(a) === String(b);
 }
 
-function matchTier(tiers, houseValue) {
+function matchTier(tiers, houseValue, regionGrade = null) {
   if (!Array.isArray(tiers) || !tiers.length) return null;
-  for (const t of tiers) {
+  const mine = tiers.filter((t) => !Array.isArray(t.regionGrades) || t.regionGrades.includes(regionGrade));
+  if (!mine.length) return null;
+  for (const t of mine) {
     if (t.upTo == null || houseValue <= t.upTo) return t;
   }
-  return tiers[tiers.length - 1];
+  return mine[mine.length - 1];
 }
 
 function pickAbsoluteCap(rule, tier) {

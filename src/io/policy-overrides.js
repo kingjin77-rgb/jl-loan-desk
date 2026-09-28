@@ -141,6 +141,48 @@ export function applyAll(policies, overrides) {
   return out;
 }
 
+/**
+ * 예시 수치로 **빈 칸만** 메운다.
+ *
+ * 규제 파일 전체를 예시로 바꾸면, 상담사가 확인해 넣은 값(규제지역 40% 등)까지
+ * 버려진다. 실제로 그랬다 — 6개 규칙을 채웠는데 1주택 규칙이 비었다는 이유로
+ * 파일이 통째로 예시가 됐다. 그래서 null 인 칸에만 예시값을 넣고, 어느 칸을 메웠는지
+ * meta.exampleFilled 에 경로로 남긴다. 각 계산 모듈은 자기가 **실제로 쓴 칸**이
+ * 예시인지 그 목록으로 판단한다.
+ *
+ * @returns {{doc:object, filled:string[]}}  원본을 바꾸지 않는다.
+ */
+export function fillFromExample(real, example) {
+  if (!real || !example) return { doc: real, filled: [] };
+  const doc = structuredClone(real);
+  const filled = [];
+  walk(doc, example, '');
+  return { doc, filled };
+
+  function walk(dst, src, prefix) {
+    if (dst == null || src == null || typeof src !== 'object') return;
+    for (const [k, sv] of Object.entries(src)) {
+      if (k === 'meta' || k.startsWith('_') || k.startsWith('__')) continue;
+      const path = Array.isArray(dst) ? `${prefix}[${k}]` : (prefix ? `${prefix}.${k}` : k);
+      const dv = dst[k];
+      if (dv === null || dv === undefined) {
+        if (sv !== null && sv !== undefined && typeof sv !== 'object') {
+          dst[k] = sv;
+          filled.push(path);
+        }
+        continue;
+      }
+      if (typeof dv === 'object' && typeof sv === 'object') walk(dv, sv, path);
+    }
+  }
+}
+
+/** 예시로 메운 칸 목록에서, 주어진 경로(또는 접두어)가 예시인지. */
+export function isExampleFilled(meta, ...paths) {
+  const list = meta?.exampleFilled ?? [];
+  return paths.some((p) => list.some((f) => f === p || f.startsWith(p + '.') || f.startsWith(p + '[')));
+}
+
 /* ── 파일로 주고받기 ── */
 
 export function toFile(o) {

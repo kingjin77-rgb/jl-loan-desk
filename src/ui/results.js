@@ -434,3 +434,47 @@ export function conversionPanel(r, fold = {}) {
 
   return panel('분양전환 상담일지', children, { id: 'result-conversion', collapsible: true, collapsed: fold['result-conversion'] === true });
 }
+
+// ───────────────────────── 출처 ─────────────────────────
+
+/**
+ * 계산에 쓴 설정의 출처·기준일·상태를 결과 하단에 적는다.
+ *
+ * 스트레스금리 3.0%p 같은 숫자가 화면에 나오면 "어디서 온 값인가"가 바로 옆에 있어야
+ * 상담사가 고객 앞에서 답할 수 있다. 상단 「자세히」에만 두면 아무도 안 본다.
+ * 인쇄본에도 같은 내용이 들어간다.
+ */
+export function sourcesPanel(r, ctx) {
+  const rows = [];
+  const NAMES = { ltv: 'LTV', dsr: 'DSR·DTI', stress: '스트레스 금리', bangongje: '방공제(최우선변제금)', mci: 'MCI·MCG', regions: '규제지역', bunyangjeonhwan: '분양전환' };
+  for (const [k, p] of Object.entries(ctx.policies ?? {})) {
+    const m = p?.meta ?? {};
+    // 예시는 "빈 칸만" 메운 것이다. 어느 칸이 예시인지 같이 적는다 — 파일 전체가 예시가 아니다.
+    const filled = m.exampleFilled ?? [];
+    const 상태 = m.demo ? '⚠ 데모(가상)'
+      : filled.length ? `일부 예시 (${filled.length}칸: ${filled.slice(0, 3).join(', ')}${filled.length > 3 ? ' …' : ''})`
+      : m.직접입력 ? (m.verified ? '직접 입력·원문 확인' : '직접 입력·미검증')
+      : m.verified ? '검수완료'
+      : /웹 검색/.test(m.출처 || '') ? '미검증(웹 요약)' : '미검증';
+    rows.push({ 항목: NAMES[k] ?? k, 기준일: m.기준일 ?? '-', 출처: m.출처 || '(없음)', url: m.출처URL || '', 상태 });
+  }
+  const 상품 = r.limit?.selectedProduct;
+  if (상품) {
+    const doc = (ctx.products ?? []).find((d) => (d.variants ?? []).some((v) => v.variantId === 상품.variantId));
+    const m = doc?.meta ?? {};
+    rows.push({ 항목: `상품 · ${상품.name}`, 기준일: m.기준일 ?? '-', 출처: m.출처 || '(없음)', url: m.출처URL || '', 상태: m.verified ? '검수완료' : '미검증' });
+  }
+  if (!rows.length) return null;
+
+  return panel('출처 · 기준일', [
+    table([
+      { key: '항목', label: '항목' },
+      { key: '기준일', label: '기준일' },
+      { key: '출처', label: '출처', render: (x) => x.url
+          ? el('a', { href: x.url, target: '_blank', rel: 'noopener', text: x.출처 })
+          : el('span', { text: x.출처 }) },
+      { key: '상태', label: '상태', render: (x) => el('span', { class: /예시|데모|미검증/.test(x.상태) ? 'tiny warn' : 'tiny', text: x.상태 }) },
+    ], rows),
+    el('p.tiny.faint', { text: '「미검증(웹 요약)」은 웹 검색 요약으로 옮긴 값으로 원문 대조 전이라는 뜻입니다. 「예시 수치」는 은행 주담대 설명용이며 실행일·현장마다 다릅니다.' }),
+  ], { id: 'result-sources' });
+}

@@ -10,6 +10,22 @@
 
 import { won } from './money.js';
 
+/**
+ * 이 계산이 쓴 칸이 **예시로 메워진 칸**인가.
+ *
+ * loader 가 빈 칸을 예시로 채우면 meta.exampleFilled 에 경로 목록이 남는다.
+ * 파일 전체가 아니라 "내가 실제로 읽은 칸"이 예시인지로 판단해야,
+ * 규제지역 40% 를 확인해 넣은 상담에 「예시」 딱지가 붙지 않는다.
+ *
+ * @param {object} meta        policy 문서의 meta
+ * @param {...string} paths    이 계산이 읽은 경로(접두어 허용: 'limits' 는 'limits.은행권' 을 포함)
+ */
+export function usesExample(meta, ...paths) {
+  const list = meta?.exampleFilled ?? [];
+  if (!list.length) return false;
+  return paths.some((p) => p && list.some((f) => f === p || f.startsWith(p + '.') || f.startsWith(p + '[')));
+}
+
 export const CAP_IDS = {
   LTV: 'LTV',
   DSR: 'DSR',

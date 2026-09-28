@@ -1,0 +1,203 @@
+{
+  "meta": {
+    "id": "ltv",
+    "기준일": "2026-09-28",
+    "출처": "금융위원회 6.27 가계부채 관리 강화 방안(2025-06-28 시행) · 10.15 대책(2025-10-16 시행) — 웹 검색 요약",
+    "출처URL": "https://www.fsc.go.kr/no010101/85432",
+    "참고URL": [
+      "https://www.fsc.go.kr/no010101/84824",
+      "https://www.hankyung.com/article/2025111448861",
+      "https://kbthink.com/loan-guide/1015-measures.html"
+    ],
+    "verified": false,
+    "작성자": "웹 검색 전사",
+    "비고": [
+      "웹 검색 요약(2026-09-28)으로 확인. 정부 원문(myhome.go.kr·hf.go.kr·fsc.go.kr·law.go.kr)은 이 환경에서 접속이 막혀 직접 대조하지 못함 → verified=false. 원문 대조 후 verified 를 올리십시오.",
+      "확인된 것: 규제지역(투기과열·조정대상) 무주택 40%, 생애최초 70%(규제지역·수도권에서도 70%, 6개월 내 전입 의무) / 비규제 무주택 70%, 생애최초 80%.",
+      "규제지역 총액 상한: 주택가격 15억 이하 6억 · 15~25억 4억 · 25억 초과 2억 (10.15 대책).",
+      "확인 안 된 것(null 유지): 1주택·다주택의 규제지역 LTV(처분조건부 등), 생활안정자금·전세반환, 비규제 1주택."
+    ]
+  },
+  "_확인필요": [
+    "1주택·다주택의 규제지역 LTV 와 처분·전입 조건",
+    "생활안정자금·전세반환 목적 LTV",
+    "priceTiers 가 비규제·수도권에도 적용되는지",
+    "원문(fsc.go.kr 보도자료) 대조"
+  ],
+  "default": null,
+  "rules": [
+    {
+      "id": "투기과열-무주택-생애최초-구입",
+      "when": {
+        "regionGrade": "투기과열",
+        "ownedHouses": 0,
+        "isFirstTime": true,
+        "purpose": "구입"
+      },
+      "ltv": 0.7,
+      "absoluteCap": null,
+      "note": "웹 검색 요약 — 원문 대조 필요"
+    },
+    {
+      "id": "투기과열-무주택-구입",
+      "when": {
+        "regionGrade": "투기과열",
+        "ownedHouses": 0,
+        "purpose": "구입"
+      },
+      "ltv": 0.4,
+      "absoluteCap": null,
+      "note": "웹 검색 요약 — 원문 대조 필요"
+    },
+    {
+      "id": "투기과열-1주택-구입",
+      "when": {
+        "regionGrade": "투기과열",
+        "ownedHouses": 1,
+        "purpose": "구입"
+      },
+      "ltv": null,
+      "note": "기존주택 처분조건 여부에 따라 달라질 수 있음 — 확인 필요"
+    },
+    {
+      "id": "투기과열-다주택-구입",
+      "when": {
+        "regionGrade": "투기과열",
+        "ownedHouses": "다주택",
+        "purpose": "구입"
+      },
+      "ltv": null,
+      "note": "값 미확인"
+    },
+    {
+      "id": "조정대상-무주택-생애최초-구입",
+      "when": {
+        "regionGrade": "조정대상",
+        "ownedHouses": 0,
+        "isFirstTime": true,
+        "purpose": "구입"
+      },
+      "ltv": 0.7,
+      "absoluteCap": null,
+      "note": "웹 검색 요약 — 원문 대조 필요"
+    },
+    {
+      "id": "조정대상-무주택-구입",
+      "when": {
+        "regionGrade": "조정대상",
+        "ownedHouses": 0,
+        "purpose": "구입"
+      },
+      "ltv": 0.4,
+      "note": "웹 검색 요약 — 원문 대조 필요"
+    },
+    {
+      "id": "조정대상-1주택-구입",
+      "when": {
+        "regionGrade": "조정대상",
+        "ownedHouses": 1,
+        "purpose": "구입"
+      },
+      "ltv": null,
+      "note": "값 미확인"
+    },
+    {
+      "id": "조정대상-다주택-구입",
+      "when": {
+        "regionGrade": "조정대상",
+        "ownedHouses": "다주택",
+        "purpose": "구입"
+      },
+      "ltv": null,
+      "note": "값 미확인"
+    },
+    {
+      "id": "비규제-무주택-생애최초-구입",
+      "when": {
+        "regionGrade": "비규제",
+        "ownedHouses": 0,
+        "isFirstTime": true,
+        "purpose": "구입"
+      },
+      "ltv": 0.8,
+      "note": "웹 검색 요약 — 원문 대조 필요"
+    },
+    {
+      "id": "비규제-무주택-구입",
+      "when": {
+        "regionGrade": "비규제",
+        "ownedHouses": 0,
+        "purpose": "구입"
+      },
+      "ltv": 0.7,
+      "note": "웹 검색 요약 — 원문 대조 필요"
+    },
+    {
+      "id": "비규제-1주택-구입",
+      "when": {
+        "regionGrade": "비규제",
+        "ownedHouses": 1,
+        "purpose": "구입"
+      },
+      "ltv": null,
+      "note": "값 미확인"
+    },
+    {
+      "id": "비규제-다주택-구입",
+      "when": {
+        "regionGrade": "비규제",
+        "ownedHouses": "다주택",
+        "purpose": "구입"
+      },
+      "ltv": null,
+      "note": "값 미확인"
+    },
+    {
+      "id": "생활안정자금-전체",
+      "when": {
+        "purpose": "생활안정"
+      },
+      "ltv": null,
+      "absoluteCap": null,
+      "note": "생활안정자금 목적 — 별도 한도. 값 미확인"
+    },
+    {
+      "id": "전세반환-전체",
+      "when": {
+        "purpose": "전세반환"
+      },
+      "ltv": null,
+      "note": "임차보증금 반환 목적 — 값 미확인"
+    }
+  ],
+  "priceTiers": [
+    {
+      "regionGrades": [
+        "투기과열",
+        "조정대상"
+      ],
+      "upTo": 1500000000,
+      "absoluteCap": 600000000,
+      "note": "규제지역 · 주택가격 15억 이하 → 6억"
+    },
+    {
+      "regionGrades": [
+        "투기과열",
+        "조정대상"
+      ],
+      "upTo": 2500000000,
+      "absoluteCap": 400000000,
+      "note": "규제지역 · 15억 초과 25억 이하 → 4억"
+    },
+    {
+      "regionGrades": [
+        "투기과열",
+        "조정대상"
+      ],
+      "upTo": null,
+      "absoluteCap": 200000000,
+      "note": "규제지역 · 25억 초과 → 2억"
+    }
+  ],
+  "_priceTiers설명": "regionGrades 에 있는 규제지역에서만 적용. upTo 는 주택가격 상한(원), absoluteCap 은 대출 총액 상한(원). 10.15 대책."
+}

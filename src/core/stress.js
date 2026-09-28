@@ -10,6 +10,7 @@
  */
 
 import { formatPct } from './money.js';
+import { usesExample } from './cap.js';
 
 /**
  * @param {object} p
@@ -22,6 +23,10 @@ import { formatPct } from './money.js';
 export function stressedRate({ contractRate, rateType = '변동', region = '수도권', loanType = '주택담보대출' }, config) {
   const base = Number(contractRate) || 0;
   const source = sourceOf(config);
+  // 가산폭·비율 중 이 계산이 읽는 칸이 예시로 메워졌을 때만 「예시」.
+  source && (source.example = usesExample(config?.meta,
+    'baseAddOn', 'floor', 'ceiling', 'currentStage', 'appliedRatio',
+    `byRegion.${region}`, `ratioByRegion.${region}`, `byRateType.${rateType}`));
 
   const inScope = !config?.scope || config.scope.includes(loanType);
   if (!inScope) {
@@ -54,9 +59,13 @@ export function stressedRate({ contractRate, rateType = '변동', region = '수�
   if (floor != null) bounded = Math.max(bounded, floor);
   if (ceiling != null) bounded = Math.min(bounded, ceiling);
 
-  // 시행 단계별 적용비율 (1단계 25%, 2단계 50%, 3단계 100% 식)
+  // 시행 단계별 적용비율 (1단계 25%, 2단계 50%, 3단계 100% 식).
+  // ★ 지역별로 다른 비율이 정해져 있으면 그것이 우선한다.
+  //   3단계 시행 후에도 지방 주담대는 2단계 수준(50%)이 유지되고 있다(2026년 하반기 기준).
+  //   같은 3단계인데 지역마다 비율이 다르므로 stage 하나로는 표현이 안 된다.
   const stage = config?.currentStage;
-  const stageRatio = stage ? (config?.appliedRatio?.[stage] ?? 1) : 1;
+  const stageRatio = config?.ratioByRegion?.[region]
+    ?? (stage ? (config?.appliedRatio?.[stage] ?? 1) : 1);
 
   // 금리유형별 적용비율 (변동 100%, 혼합형 일부, 고정 0%)
   const typeRatio = config?.byRateType?.[rateType] ?? 1;

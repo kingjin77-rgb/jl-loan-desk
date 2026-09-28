@@ -183,12 +183,13 @@ export function productCap(variant, ctx, { houseValue = 0 } = {}) {
   if (variant.limit?.max != null) {
     caps.push({ amount: won(variant.limit.max), why: `상품 최대한도 ${formatKRW(variant.limit.max)}` });
   }
-  if (variant.limit?.ltvOverride != null && houseValue > 0) {
+  const ltv = resolveLtv(variant, ctx);
+  if (ltv.value != null && houseValue > 0) {
     caps.push({
-      amount: won(houseValue * variant.limit.ltvOverride),
+      amount: won(houseValue * ltv.value),
       // ★ 무엇의 70%인지가 상품마다 다르다(디딤돌=공시가격, 보금자리론=분양가).
       //   상담사가 담보가액 칸에 무엇을 넣어야 하는지 알아야 하므로 기준을 같이 적는다.
-      why: `상품 LTV ${formatPct(variant.limit.ltvOverride, 0)} × ${variant.limit.ltvBase ?? '담보가액'} ${formatKRW(houseValue)}`,
+      why: `상품 LTV ${formatPct(ltv.value, 0)}${ltv.label ? ` (${ltv.label})` : ''} × ${variant.limit.ltvBase ?? '담보가액'} ${formatKRW(houseValue)}`,
     });
   }
   if (variant.limit?.depositRatio != null) {
@@ -249,6 +250,24 @@ export function flattenProducts(productDocs) {
     }
   }
   return out;
+}
+
+/**
+ * 상품 LTV — **조건부**.
+ *
+ * "생애최초 80%"는 무조건이 아니다. 디딤돌·보금자리론 모두 담보주택이
+ * 수도권(서울·인천·경기) 또는 규제지역이면 70% 로 내려간다(6.27 대책 이후).
+ * limit.ltvOverrideWhen 에 조건을 순서대로 두고, 처음 맞는 것을 쓴다.
+ * 아무것도 안 맞으면 limit.ltvOverride(기본값).
+ */
+export function resolveLtv(variant, ctx) {
+  for (const rule of variant.limit?.ltvOverrideWhen ?? []) {
+    if (rule.value == null) continue;
+    if (!rule.condition || evaluate(rule.condition, ctx).eligible) {
+      return { value: rule.value, label: rule.label ?? null };
+    }
+  }
+  return { value: variant.limit?.ltvOverride ?? null, label: null };
 }
 
 function readCtx(ctx, path) {

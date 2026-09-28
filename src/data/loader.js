@@ -6,7 +6,7 @@
  */
 
 import { validatePolicy, validateComplex, validateMeta, collectUnsetValues, collectTrustFlags } from './validate.js';
-import { loadOverrides, applyAll, applyOverride, countOverrides } from '../io/policy-overrides.js';
+import { loadOverrides, applyAll, countOverrides, fillFromExample } from '../io/policy-overrides.js';
 
 const DATA_ROOT = new URL('../../data/', import.meta.url);
 
@@ -87,11 +87,14 @@ export async function loadAll(profileName = null) {
     if (!collectUnsetValues({ [key]: effective[key] }).length) continue;   // 실제값이 다 있으면 예시 불필요
     try {
       const ex = validatePolicy(await getJSON(path), path);
-      ex.__path = path;
-      // 일부만 넣은 실제값이 있으면 예시 위에도 얹는다(같은 구조). 넣은 것은 잃지 않는다.
-      const entry = overrides.policies?.[key];
-      effective[key] = entry ? applyOverride(ex, entry) : ex;
-      effective[key].meta = { ...effective[key].meta, example: true, verified: false };
+      // ★ 통째로 바꾸지 않는다. 실제값(파일 + 직접 입력)은 그대로 두고 **빈 칸만** 예시로
+      //   메운다. 어느 칸을 메웠는지 meta.exampleFilled 에 남겨, 각 계산이 자기가 쓴 칸이
+      //   예시인지 판단한다. 규제지역 40% 를 넣어 놓고도 1주택 규칙이 비었다는 이유로
+      //   파일 전체가 예시가 되는 일이 있었다.
+      const { doc, filled } = fillFromExample(effective[key], ex);
+      if (!filled.length) continue;
+      effective[key] = doc;
+      effective[key].meta = { ...doc.meta, example: true, exampleFilled: filled, exampleSource: ex.meta?.id ?? path };
       exampleKeys.push(key);
     } catch (e) {
       productWarnings.push(`${path}: ${e.message}`);

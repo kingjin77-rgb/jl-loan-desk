@@ -112,7 +112,9 @@ test('상품 만기가 더 짧으면 그 만기로 갚는다', () => {
 
 /* ── 예시 규제값 표시 ── */
 test('★ 예시 규제값으로 만든 상한은 isExample 로 드러난다 — 은행일 때만', () => {
-  const 예시정책 = { ...POLICIES, ltv: { ...POLICIES.ltv, meta: { ...POLICIES.ltv.meta, example: true } } };
+  // 예시는 "빈 칸만" 메운다 — 어느 칸이 예시인지 exampleFilled 로 남고, 그 칸을 쓴 계산만 예시다.
+  const 예시정책 = { ...POLICIES, ltv: { ...POLICIES.ltv, meta: { ...POLICIES.ltv.meta, example: true,
+    exampleFilled: POLICIES.ltv.rules.map((_, i) => `rules[${i}].ltv`) } } };
   const 은행 = derive(입력(), 예시정책, { products: 상품문서 });
   assert.ok(은행.exampleCaps.includes('LTV 한도'));
   assert.equal(은행.isExample, true);

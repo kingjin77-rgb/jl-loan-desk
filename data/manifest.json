@@ -16,10 +16,10 @@
     "실무": {
       "label": "실무",
       "policy": {
-        "ltv": "policy/ltv.2026-09-19.json",
-        "dsr": "policy/dsr.2026-09-19.json",
-        "stress": "policy/stress.2026-09-19.json",
-        "bangongje": "policy/bangongje.2026-09-19.json",
+        "ltv": "policy/ltv.2026-09-28.json",
+        "dsr": "policy/dsr.2026-09-28.json",
+        "stress": "policy/stress.2026-07-01.json",
+        "bangongje": "policy/bangongje.2026-01-02.json",
         "regions": "policy/regions.2026-09-19.json",
         "mci": "policy/mci.2026-09-19.json",
         "bunyangjeonhwan": "policy/bunyangjeonhwan.2026-09-28.json"

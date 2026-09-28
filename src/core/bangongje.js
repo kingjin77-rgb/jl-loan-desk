@@ -10,8 +10,7 @@
  */
 
 import { won, formatKRW } from './money.js';
-import { makeDeduction } from './cap.js';
-import { CAP_IDS } from './cap.js';
+import { makeDeduction, CAP_IDS, usesExample } from './cap.js';
 
 /**
  * @param {object} p
@@ -25,6 +24,8 @@ import { CAP_IDS } from './cap.js';
 export function bangongjeDeduction({ regionKey, roomCount = 1, mci = false, mcg = false }, config) {
   const source = sourceOf(config);
   const entry = (config?.regions || []).find((r) => r.key === regionKey);
+  // 이 지역의 최우선변제금이 예시로 메워진 칸일 때만 「예시」.
+  source && (source.example = usesExample(config?.meta, `regions[${(config?.regions || []).indexOf(entry)}]`));
 
   if (!entry) {
     // 지역을 모르면 0원으로 조용히 넘어가지 않는다. 0원 차감은 한도를 과대계상한다.

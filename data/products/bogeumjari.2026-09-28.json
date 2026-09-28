@@ -1,200 +1,706 @@
 {
   "meta": {
-    "id": "bogeumjari", "기준일": "2026-09-28",
+    "id": "bogeumjari",
+    "기준일": "2026-09-28",
     "출처": "법무법인 제이엘 「분양전환 상담일지」(NHF) — 사내 상담자료",
-    "출처URL": "",
-    "verified": false, "작성자": "상담일지 전사",
+    "출처URL": "https://www.hf.go.kr/ko/sub01/sub01_01_02.do",
+    "verified": false,
+    "작성자": "상담일지 전사",
     "비고": [
       "사내 상담일지 기재값입니다. 한국주택금융공사(hf.go.kr) 원문 대조 전까지 verified=false.",
       "금리는 만기까지 변동 없는 순수 고정금리이며 소득구간별로 나뉘지 않습니다.",
-      "아낌e-보금자리론(전자약정)은 u-보금자리론보다 0.1%p 낮습니다 — 별도 유형으로 두었습니다."
+      "아낌e-보금자리론(전자약정)은 u-보금자리론보다 0.1%p 낮습니다 — 별도 유형으로 두었습니다.",
+      "생애최초 LTV 80% 는 무조건이 아니다: 담보주택이 수도권(서울·인천·경기) 또는 규제지역이면 70%. 웹 검색 요약(2026-09-28)으로 확인. 정부 원문(myhome.go.kr·hf.go.kr·fsc.go.kr·law.go.kr)은 이 환경에서 접속이 막혀 직접 대조하지 못함 → verified=false. 원문 대조 후 verified 를 올리십시오."
+    ],
+    "참고URL": [
+      "https://www.hf.go.kr/ko/sub01/sub01_01_02.do",
+      "https://kbthink.com/loan-guide/bogeumjali.html"
     ]
   },
   "_확인필요": [
     "순자산·자산 요건 (상담일지에 없음)",
     "1주택자 처분조건의 세부(기존주택 3년 이내 처분 — 약정 방식, 미이행 시 제재)",
-    "생애최초 LTV 80% 의 적용 조건 (상담일지 「생초 80% 수도권 제외」)",
     "40·50년 만기의 나이 산정 기준일 (신청일 기준 만나이 여부)",
     "다자녀·신혼 한도 4억의 구분 조건"
   ],
-
   "productId": "bogeumjari",
   "name": "보금자리론",
   "category": "정책",
   "kind": "주택담보",
   "신청": "한국주택금융공사(HF) 홈페이지 · 스마트주택금융 앱",
   "금리형태": "만기까지 변동 없는 순수 고정금리",
-  "중도상환수수료": { "비율": 0.007, "면제경과년": 3, "설명": "3년 이내 최대 0.7%(경과일수 차감), 3년 경과 후 0원" },
-
+  "중도상환수수료": {
+    "비율": 0.007,
+    "면제경과년": 3,
+    "설명": "3년 이내 최대 0.7%(경과일수 차감), 3년 경과 후 0원"
+  },
   "_만기요건설명": [
     "40년 만기: 만 39세 이하 또는 만 49세 이하 신혼가구",
     "50년 만기: 만 34세 이하 또는 만 39세 이하 신혼가구",
     "나이를 입력하지 않으면 막지 않고 '판정 불가'로 둡니다 — 모른다고 상담을 멈추면 안 됩니다."
   ],
-
   "variants": [
     {
       "variantId": "bogeumjari-akkime",
       "name": "아낌e-보금자리론",
       "비고": "전자약정·전자등기 이용. u-보금자리론 대비 0.1%p 인하.",
-      "eligibility": { "and": [
-        { "path": "borrower.ownedHouses", "op": "lte", "value": 1, "label": "무주택 또는 1주택", "unit": "채" },
-        { "path": "borrower.annualIncomeCombined", "op": "lte", "value": 70000000, "label": "부부합산 연소득", "unit": "원" },
-        { "path": "house.price", "op": "lte", "value": 600000000, "label": "주택가격(KB시세·감정가)", "unit": "원" }
-      ] },
-      "limit": { "max": 360000000, "ltvOverride": 0.7, "ltvBase": "분양가", "dtiOverride": 0.6 },
+      "eligibility": {
+        "and": [
+          {
+            "path": "borrower.ownedHouses",
+            "op": "lte",
+            "value": 1,
+            "label": "무주택 또는 1주택",
+            "unit": "채"
+          },
+          {
+            "path": "borrower.annualIncomeCombined",
+            "op": "lte",
+            "value": 70000000,
+            "label": "부부합산 연소득",
+            "unit": "원"
+          },
+          {
+            "path": "house.price",
+            "op": "lte",
+            "value": 600000000,
+            "label": "주택가격(KB시세·감정가)",
+            "unit": "원"
+          }
+        ]
+      },
+      "limit": {
+        "max": 360000000,
+        "ltvOverride": 0.7,
+        "ltvBase": "분양가",
+        "dtiOverride": 0.6
+      },
       "rateTable": {
-        "incomeBands": [null],
-        "termYears": [10, 15, 20, 30, 40, 50],
-        "matrix": [[0.0490, 0.0500, 0.0505, 0.0510, 0.0515, 0.0525]]
+        "incomeBands": [
+          null
+        ],
+        "termYears": [
+          10,
+          15,
+          20,
+          30,
+          40,
+          50
+        ],
+        "matrix": [
+          [
+            0.049,
+            0.05,
+            0.0505,
+            0.051,
+            0.0515,
+            0.0525
+          ]
+        ]
       },
       "rateDiscounts": [],
       "rateAdjustments": [],
       "termRules": [
-        { "maxYears": 30, "label": "30년 만기" },
-        { "maxYears": 40, "label": "40년 만기", "eligibility": { "or": [
-          { "path": "borrower.age", "op": "lte", "value": 39, "label": "만 39세 이하", "unit": "세" },
-          { "and": [
-            { "path": "borrower.isNewlywed", "op": "eq", "value": true, "label": "신혼가구" },
-            { "path": "borrower.age", "op": "lte", "value": 49, "label": "만 49세 이하", "unit": "세" }
-          ] }
-        ] } },
-        { "maxYears": 50, "label": "50년 만기", "eligibility": { "or": [
-          { "path": "borrower.age", "op": "lte", "value": 34, "label": "만 34세 이하", "unit": "세" },
-          { "and": [
-            { "path": "borrower.isNewlywed", "op": "eq", "value": true, "label": "신혼가구" },
-            { "path": "borrower.age", "op": "lte", "value": 39, "label": "만 39세 이하", "unit": "세" }
-          ] }
-        ] } }
+        {
+          "maxYears": 30,
+          "label": "30년 만기"
+        },
+        {
+          "maxYears": 40,
+          "label": "40년 만기",
+          "eligibility": {
+            "or": [
+              {
+                "path": "borrower.age",
+                "op": "lte",
+                "value": 39,
+                "label": "만 39세 이하",
+                "unit": "세"
+              },
+              {
+                "and": [
+                  {
+                    "path": "borrower.isNewlywed",
+                    "op": "eq",
+                    "value": true,
+                    "label": "신혼가구"
+                  },
+                  {
+                    "path": "borrower.age",
+                    "op": "lte",
+                    "value": 49,
+                    "label": "만 49세 이하",
+                    "unit": "세"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "maxYears": 50,
+          "label": "50년 만기",
+          "eligibility": {
+            "or": [
+              {
+                "path": "borrower.age",
+                "op": "lte",
+                "value": 34,
+                "label": "만 34세 이하",
+                "unit": "세"
+              },
+              {
+                "and": [
+                  {
+                    "path": "borrower.isNewlywed",
+                    "op": "eq",
+                    "value": true,
+                    "label": "신혼가구"
+                  },
+                  {
+                    "path": "borrower.age",
+                    "op": "lte",
+                    "value": 39,
+                    "label": "만 39세 이하",
+                    "unit": "세"
+                  }
+                ]
+              }
+            ]
+          }
+        }
       ],
       "rateFloor": null,
       "maxTermYears": 50,
-      "repaymentMethods": ["원리금균등", "원금균등"],
-      "graceMonthsAllowed": [0]
+      "repaymentMethods": [
+        "원리금균등",
+        "원금균등"
+      ],
+      "graceMonthsAllowed": [
+        0
+      ]
     },
     {
       "variantId": "bogeumjari-u",
       "name": "u-보금자리론",
-      "eligibility": { "and": [
-        { "path": "borrower.ownedHouses", "op": "lte", "value": 1, "label": "무주택 또는 1주택", "unit": "채" },
-        { "path": "borrower.annualIncomeCombined", "op": "lte", "value": 70000000, "label": "부부합산 연소득", "unit": "원" },
-        { "path": "house.price", "op": "lte", "value": 600000000, "label": "주택가격(KB시세·감정가)", "unit": "원" }
-      ] },
-      "limit": { "max": 360000000, "ltvOverride": 0.7, "ltvBase": "분양가", "dtiOverride": 0.6 },
+      "eligibility": {
+        "and": [
+          {
+            "path": "borrower.ownedHouses",
+            "op": "lte",
+            "value": 1,
+            "label": "무주택 또는 1주택",
+            "unit": "채"
+          },
+          {
+            "path": "borrower.annualIncomeCombined",
+            "op": "lte",
+            "value": 70000000,
+            "label": "부부합산 연소득",
+            "unit": "원"
+          },
+          {
+            "path": "house.price",
+            "op": "lte",
+            "value": 600000000,
+            "label": "주택가격(KB시세·감정가)",
+            "unit": "원"
+          }
+        ]
+      },
+      "limit": {
+        "max": 360000000,
+        "ltvOverride": 0.7,
+        "ltvBase": "분양가",
+        "dtiOverride": 0.6
+      },
       "rateTable": {
-        "incomeBands": [null],
-        "termYears": [10, 15, 20, 30, 40, 50],
-        "matrix": [[0.0500, 0.0510, 0.0515, 0.0520, 0.0525, 0.0535]]
+        "incomeBands": [
+          null
+        ],
+        "termYears": [
+          10,
+          15,
+          20,
+          30,
+          40,
+          50
+        ],
+        "matrix": [
+          [
+            0.05,
+            0.051,
+            0.0515,
+            0.052,
+            0.0525,
+            0.0535
+          ]
+        ]
       },
       "rateDiscounts": [],
       "rateAdjustments": [],
       "termRules": [
-        { "maxYears": 30, "label": "30년 만기" },
-        { "maxYears": 40, "label": "40년 만기", "eligibility": { "or": [
-          { "path": "borrower.age", "op": "lte", "value": 39, "label": "만 39세 이하", "unit": "세" },
-          { "and": [
-            { "path": "borrower.isNewlywed", "op": "eq", "value": true, "label": "신혼가구" },
-            { "path": "borrower.age", "op": "lte", "value": 49, "label": "만 49세 이하", "unit": "세" }
-          ] }
-        ] } },
-        { "maxYears": 50, "label": "50년 만기", "eligibility": { "or": [
-          { "path": "borrower.age", "op": "lte", "value": 34, "label": "만 34세 이하", "unit": "세" },
-          { "and": [
-            { "path": "borrower.isNewlywed", "op": "eq", "value": true, "label": "신혼가구" },
-            { "path": "borrower.age", "op": "lte", "value": 39, "label": "만 39세 이하", "unit": "세" }
-          ] }
-        ] } }
+        {
+          "maxYears": 30,
+          "label": "30년 만기"
+        },
+        {
+          "maxYears": 40,
+          "label": "40년 만기",
+          "eligibility": {
+            "or": [
+              {
+                "path": "borrower.age",
+                "op": "lte",
+                "value": 39,
+                "label": "만 39세 이하",
+                "unit": "세"
+              },
+              {
+                "and": [
+                  {
+                    "path": "borrower.isNewlywed",
+                    "op": "eq",
+                    "value": true,
+                    "label": "신혼가구"
+                  },
+                  {
+                    "path": "borrower.age",
+                    "op": "lte",
+                    "value": 49,
+                    "label": "만 49세 이하",
+                    "unit": "세"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "maxYears": 50,
+          "label": "50년 만기",
+          "eligibility": {
+            "or": [
+              {
+                "path": "borrower.age",
+                "op": "lte",
+                "value": 34,
+                "label": "만 34세 이하",
+                "unit": "세"
+              },
+              {
+                "and": [
+                  {
+                    "path": "borrower.isNewlywed",
+                    "op": "eq",
+                    "value": true,
+                    "label": "신혼가구"
+                  },
+                  {
+                    "path": "borrower.age",
+                    "op": "lte",
+                    "value": 39,
+                    "label": "만 39세 이하",
+                    "unit": "세"
+                  }
+                ]
+              }
+            ]
+          }
+        }
       ],
       "rateFloor": null,
       "maxTermYears": 50,
-      "repaymentMethods": ["원리금균등", "원금균등"],
-      "graceMonthsAllowed": [0]
+      "repaymentMethods": [
+        "원리금균등",
+        "원금균등"
+      ],
+      "graceMonthsAllowed": [
+        0
+      ]
     },
     {
       "variantId": "bogeumjari-newlywed",
       "name": "보금자리론 신혼가구",
-      "eligibility": { "and": [
-        { "path": "borrower.ownedHouses", "op": "lte", "value": 1, "label": "무주택 또는 1주택", "unit": "채" },
-        { "path": "borrower.isNewlywed", "op": "eq", "value": true, "label": "신혼가구" },
-        { "path": "borrower.annualIncomeCombined", "op": "lte", "value": 85000000, "label": "부부합산 연소득", "unit": "원" },
-        { "path": "house.price", "op": "lte", "value": 600000000, "label": "주택가격(KB시세·감정가)", "unit": "원" }
-      ] },
-      "limit": { "max": 400000000, "ltvOverride": 0.7, "ltvBase": "분양가", "dtiOverride": 0.6 },
-      "rateTable": {
-        "incomeBands": [null],
-        "termYears": [10, 15, 20, 30, 40, 50],
-        "matrix": [[0.0490, 0.0500, 0.0505, 0.0510, 0.0515, 0.0525]]
+      "eligibility": {
+        "and": [
+          {
+            "path": "borrower.ownedHouses",
+            "op": "lte",
+            "value": 1,
+            "label": "무주택 또는 1주택",
+            "unit": "채"
+          },
+          {
+            "path": "borrower.isNewlywed",
+            "op": "eq",
+            "value": true,
+            "label": "신혼가구"
+          },
+          {
+            "path": "borrower.annualIncomeCombined",
+            "op": "lte",
+            "value": 85000000,
+            "label": "부부합산 연소득",
+            "unit": "원"
+          },
+          {
+            "path": "house.price",
+            "op": "lte",
+            "value": 600000000,
+            "label": "주택가격(KB시세·감정가)",
+            "unit": "원"
+          }
+        ]
       },
-      "rateDiscounts": [], "rateAdjustments": [],
+      "limit": {
+        "max": 400000000,
+        "ltvOverride": 0.7,
+        "ltvBase": "분양가",
+        "dtiOverride": 0.6
+      },
+      "rateTable": {
+        "incomeBands": [
+          null
+        ],
+        "termYears": [
+          10,
+          15,
+          20,
+          30,
+          40,
+          50
+        ],
+        "matrix": [
+          [
+            0.049,
+            0.05,
+            0.0505,
+            0.051,
+            0.0515,
+            0.0525
+          ]
+        ]
+      },
+      "rateDiscounts": [],
+      "rateAdjustments": [],
       "termRules": [
-        { "maxYears": 30, "label": "30년 만기" },
-        { "maxYears": 40, "label": "40년 만기", "eligibility": { "path": "borrower.age", "op": "lte", "value": 49, "label": "만 49세 이하", "unit": "세" } },
-        { "maxYears": 50, "label": "50년 만기", "eligibility": { "path": "borrower.age", "op": "lte", "value": 39, "label": "만 39세 이하", "unit": "세" } }
+        {
+          "maxYears": 30,
+          "label": "30년 만기"
+        },
+        {
+          "maxYears": 40,
+          "label": "40년 만기",
+          "eligibility": {
+            "path": "borrower.age",
+            "op": "lte",
+            "value": 49,
+            "label": "만 49세 이하",
+            "unit": "세"
+          }
+        },
+        {
+          "maxYears": 50,
+          "label": "50년 만기",
+          "eligibility": {
+            "path": "borrower.age",
+            "op": "lte",
+            "value": 39,
+            "label": "만 39세 이하",
+            "unit": "세"
+          }
+        }
       ],
-      "rateFloor": null, "maxTermYears": 50,
-      "repaymentMethods": ["원리금균등", "원금균등"], "graceMonthsAllowed": [0]
+      "rateFloor": null,
+      "maxTermYears": 50,
+      "repaymentMethods": [
+        "원리금균등",
+        "원금균등"
+      ],
+      "graceMonthsAllowed": [
+        0
+      ]
     },
     {
       "variantId": "bogeumjari-firsttime",
       "name": "보금자리론 생애최초",
-      "eligibility": { "and": [
-        { "path": "borrower.ownedHouses", "op": "eq", "value": 0, "label": "무주택" },
-        { "path": "borrower.isFirstTime", "op": "eq", "value": true, "label": "생애최초" },
-        { "path": "borrower.annualIncomeCombined", "op": "lte", "value": 70000000, "label": "부부합산 연소득", "unit": "원" },
-        { "path": "house.price", "op": "lte", "value": 600000000, "label": "주택가격(KB시세·감정가)", "unit": "원" }
-      ] },
-      "limit": { "max": 420000000, "ltvOverride": 0.7, "ltvBase": "분양가", "dtiOverride": 0.6 },
-      "rateTable": {
-        "incomeBands": [null],
-        "termYears": [10, 15, 20, 30, 40, 50],
-        "matrix": [[0.0490, 0.0500, 0.0505, 0.0510, 0.0515, 0.0525]]
+      "eligibility": {
+        "and": [
+          {
+            "path": "borrower.ownedHouses",
+            "op": "eq",
+            "value": 0,
+            "label": "무주택"
+          },
+          {
+            "path": "borrower.isFirstTime",
+            "op": "eq",
+            "value": true,
+            "label": "생애최초"
+          },
+          {
+            "path": "borrower.annualIncomeCombined",
+            "op": "lte",
+            "value": 70000000,
+            "label": "부부합산 연소득",
+            "unit": "원"
+          },
+          {
+            "path": "house.price",
+            "op": "lte",
+            "value": 600000000,
+            "label": "주택가격(KB시세·감정가)",
+            "unit": "원"
+          }
+        ]
       },
-      "rateDiscounts": [], "rateAdjustments": [],
+      "limit": {
+        "max": 420000000,
+        "ltvOverride": 0.8,
+        "ltvBase": "분양가",
+        "dtiOverride": 0.6,
+        "ltvOverrideWhen": [
+          {
+            "condition": {
+              "or": [
+                {
+                  "path": "borrower.stressRegion",
+                  "op": "eq",
+                  "value": "수도권",
+                  "label": "수도권(서울·인천·경기)"
+                },
+                {
+                  "path": "borrower.regionGrade",
+                  "op": "in",
+                  "value": [
+                    "투기과열",
+                    "조정대상"
+                  ],
+                  "label": "규제지역"
+                }
+              ]
+            },
+            "value": 0.7,
+            "label": "수도권·규제지역"
+          }
+        ]
+      },
+      "rateTable": {
+        "incomeBands": [
+          null
+        ],
+        "termYears": [
+          10,
+          15,
+          20,
+          30,
+          40,
+          50
+        ],
+        "matrix": [
+          [
+            0.049,
+            0.05,
+            0.0505,
+            0.051,
+            0.0515,
+            0.0525
+          ]
+        ]
+      },
+      "rateDiscounts": [],
+      "rateAdjustments": [],
       "termRules": [
-        { "maxYears": 30, "label": "30년 만기" },
-        { "maxYears": 40, "label": "40년 만기", "eligibility": { "path": "borrower.age", "op": "lte", "value": 39, "label": "만 39세 이하", "unit": "세" } },
-        { "maxYears": 50, "label": "50년 만기", "eligibility": { "path": "borrower.age", "op": "lte", "value": 34, "label": "만 34세 이하", "unit": "세" } }
+        {
+          "maxYears": 30,
+          "label": "30년 만기"
+        },
+        {
+          "maxYears": 40,
+          "label": "40년 만기",
+          "eligibility": {
+            "path": "borrower.age",
+            "op": "lte",
+            "value": 39,
+            "label": "만 39세 이하",
+            "unit": "세"
+          }
+        },
+        {
+          "maxYears": 50,
+          "label": "50년 만기",
+          "eligibility": {
+            "path": "borrower.age",
+            "op": "lte",
+            "value": 34,
+            "label": "만 34세 이하",
+            "unit": "세"
+          }
+        }
       ],
-      "rateFloor": null, "maxTermYears": 50,
-      "repaymentMethods": ["원리금균등", "원금균등"], "graceMonthsAllowed": [0]
+      "rateFloor": null,
+      "maxTermYears": 50,
+      "repaymentMethods": [
+        "원리금균등",
+        "원금균등"
+      ],
+      "graceMonthsAllowed": [
+        0
+      ]
     },
     {
       "variantId": "bogeumjari-child",
       "name": "보금자리론 자녀가구",
       "비고": "소득 상한이 자녀수에 따라 오릅니다 — 1자녀 8,000만 / 2자녀 9,000만 / 3자녀 이상 1억.",
-      "eligibility": { "and": [
-        { "path": "borrower.ownedHouses", "op": "lte", "value": 1, "label": "무주택 또는 1주택", "unit": "채" },
-        { "path": "borrower.children", "op": "gte", "value": 1, "label": "자녀수", "unit": "명" },
-        { "or": [
-          { "and": [
-            { "path": "borrower.children", "op": "eq", "value": 1, "label": "1자녀" },
-            { "path": "borrower.annualIncomeCombined", "op": "lte", "value": 80000000, "label": "부부합산 연소득(1자녀)", "unit": "원" }
-          ] },
-          { "and": [
-            { "path": "borrower.children", "op": "eq", "value": 2, "label": "2자녀" },
-            { "path": "borrower.annualIncomeCombined", "op": "lte", "value": 90000000, "label": "부부합산 연소득(2자녀)", "unit": "원" }
-          ] },
-          { "and": [
-            { "path": "borrower.children", "op": "gte", "value": 3, "label": "3자녀 이상" },
-            { "path": "borrower.annualIncomeCombined", "op": "lte", "value": 100000000, "label": "부부합산 연소득(3자녀 이상)", "unit": "원" }
-          ] }
-        ] },
-        { "path": "house.price", "op": "lte", "value": 600000000, "label": "주택가격(KB시세·감정가)", "unit": "원" }
-      ] },
-      "limit": { "max": 400000000, "ltvOverride": 0.7, "ltvBase": "분양가", "dtiOverride": 0.6 },
-      "rateTable": {
-        "incomeBands": [null],
-        "termYears": [10, 15, 20, 30, 40, 50],
-        "matrix": [[0.0490, 0.0500, 0.0505, 0.0510, 0.0515, 0.0525]]
+      "eligibility": {
+        "and": [
+          {
+            "path": "borrower.ownedHouses",
+            "op": "lte",
+            "value": 1,
+            "label": "무주택 또는 1주택",
+            "unit": "채"
+          },
+          {
+            "path": "borrower.children",
+            "op": "gte",
+            "value": 1,
+            "label": "자녀수",
+            "unit": "명"
+          },
+          {
+            "or": [
+              {
+                "and": [
+                  {
+                    "path": "borrower.children",
+                    "op": "eq",
+                    "value": 1,
+                    "label": "1자녀"
+                  },
+                  {
+                    "path": "borrower.annualIncomeCombined",
+                    "op": "lte",
+                    "value": 80000000,
+                    "label": "부부합산 연소득(1자녀)",
+                    "unit": "원"
+                  }
+                ]
+              },
+              {
+                "and": [
+                  {
+                    "path": "borrower.children",
+                    "op": "eq",
+                    "value": 2,
+                    "label": "2자녀"
+                  },
+                  {
+                    "path": "borrower.annualIncomeCombined",
+                    "op": "lte",
+                    "value": 90000000,
+                    "label": "부부합산 연소득(2자녀)",
+                    "unit": "원"
+                  }
+                ]
+              },
+              {
+                "and": [
+                  {
+                    "path": "borrower.children",
+                    "op": "gte",
+                    "value": 3,
+                    "label": "3자녀 이상"
+                  },
+                  {
+                    "path": "borrower.annualIncomeCombined",
+                    "op": "lte",
+                    "value": 100000000,
+                    "label": "부부합산 연소득(3자녀 이상)",
+                    "unit": "원"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "house.price",
+            "op": "lte",
+            "value": 600000000,
+            "label": "주택가격(KB시세·감정가)",
+            "unit": "원"
+          }
+        ]
       },
-      "rateDiscounts": [], "rateAdjustments": [],
+      "limit": {
+        "max": 400000000,
+        "ltvOverride": 0.7,
+        "ltvBase": "분양가",
+        "dtiOverride": 0.6
+      },
+      "rateTable": {
+        "incomeBands": [
+          null
+        ],
+        "termYears": [
+          10,
+          15,
+          20,
+          30,
+          40,
+          50
+        ],
+        "matrix": [
+          [
+            0.049,
+            0.05,
+            0.0505,
+            0.051,
+            0.0515,
+            0.0525
+          ]
+        ]
+      },
+      "rateDiscounts": [],
+      "rateAdjustments": [],
       "termRules": [
-        { "maxYears": 30, "label": "30년 만기" },
-        { "maxYears": 40, "label": "40년 만기", "eligibility": { "path": "borrower.age", "op": "lte", "value": 39, "label": "만 39세 이하", "unit": "세" } },
-        { "maxYears": 50, "label": "50년 만기", "eligibility": { "path": "borrower.age", "op": "lte", "value": 34, "label": "만 34세 이하", "unit": "세" } }
+        {
+          "maxYears": 30,
+          "label": "30년 만기"
+        },
+        {
+          "maxYears": 40,
+          "label": "40년 만기",
+          "eligibility": {
+            "path": "borrower.age",
+            "op": "lte",
+            "value": 39,
+            "label": "만 39세 이하",
+            "unit": "세"
+          }
+        },
+        {
+          "maxYears": 50,
+          "label": "50년 만기",
+          "eligibility": {
+            "path": "borrower.age",
+            "op": "lte",
+            "value": 34,
+            "label": "만 34세 이하",
+            "unit": "세"
+          }
+        }
       ],
-      "rateFloor": null, "maxTermYears": 50,
-      "repaymentMethods": ["원리금균등", "원금균등"], "graceMonthsAllowed": [0]
+      "rateFloor": null,
+      "maxTermYears": 50,
+      "repaymentMethods": [
+        "원리금균등",
+        "원금균등"
+      ],
+      "graceMonthsAllowed": [
+        0
+      ]
     }
   ]
 }

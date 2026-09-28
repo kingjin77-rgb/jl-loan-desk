@@ -17,7 +17,7 @@ import { el, $, replace, select, panel as panelOf } from './ui/dom.js';
 import { complexPanel, borrowerPanel, collateralPanel, productPanel, schedulePanel, consultationPanel, eligibilityPanel, conversionPanel } from './ui/panels.js';
 import {
   summaryStrip, scriptPanel, limitPanel, scenarioPanel, schedulePanelResult,
-  timelinePanel, fundsPanel, warningsPanel, errorsPanel, conversionPanel as conversionResultPanel } from './ui/results.js';
+  timelinePanel, fundsPanel, warningsPanel, errorsPanel, conversionPanel as conversionResultPanel, sourcesPanel } from './ui/results.js';
 import { productsPanel } from './ui/result-products.js';
 import { openComplexEditor } from './ui/complex-editor.js';
 import { openPolicyEditor } from './ui/policy-editor.js';
@@ -311,6 +311,7 @@ function resultPanels(result, { 한도무관, 한도있음 }) {
       fold: fold('result-schedule', true),
     }) : null,
     warningsPanel(result),
+    sourcesPanel(result, ctx),
     disclaimerPanel(),
   ].filter(Boolean);
 }
@@ -370,9 +371,9 @@ function banners() {
     // 붉은 데모 배너와 다르다: 실무에서 쓰라고 있는 값이되, 결과마다 「예시」가 붙는다.
     out.push(el('div.banner.warn', {}, [
       el('span.msg', {}, [
-        el('b', { text: '은행 주담대는 예시 규제값으로 계산 중. ' }),
+        el('b', { text: '규제값 중 비어 있는 칸은 예시 수치로 메워 계산 중. ' }),
         `${t.example.map((k) => ({ ltv: 'LTV', dsr: 'DSR', stress: '스트레스금리', bangongje: '방공제', mci: 'MCI' })[k] ?? k).join('·')} — `
-        + '실행일·현장마다 다릅니다. 정확한 조건은 상담사 문의. 정책상품(기금승계·디딤돌·보금자리)은 예시를 쓰지 않습니다.',
+        + '예시 칸을 쓴 결과에만 「예시」가 붙습니다. 실행일·현장마다 다릅니다. 정확한 조건은 상담사 문의. 정책상품(기금승계·디딤돌·보금자리)은 예시를 쓰지 않습니다.',
       ]),
       el('button.btn.sm', { type: 'button', text: '실제값 넣기', onClick: editPolicy }),
       bannerToggle(),
@@ -478,6 +479,9 @@ function printFooter(result) {
   return el('div.print-footer', {}, [
     el('div', { text: DISCLAIMER_SHORT }),
     el('div', { text: `설정 기준일 ${ctx.trust.oldest ?? '-'} · 프로파일 ${ctx.profileLabel}${ctx.trust.demo.length ? ' · ⚠ 데모 수치' : ''}` }),
+    el('div', { text: '출처: ' + Object.entries(ctx.policies ?? {})
+      .map(([k, p]) => `${k} ${p?.meta?.기준일 ?? '-'}${p?.meta?.example ? '[예시]' : p?.meta?.verified ? '' : '[미검증]'}`)
+      .join(' · ') }),
     el('div', { text: `출력 ${new Date().toLocaleString('ko-KR')} · 법무법인 제이엘` }),
   ]);
 }

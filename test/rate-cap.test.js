@@ -179,3 +179,87 @@ test('★ 전세 상품에는 LTV 상한을 적용하지 않는다', async () =>
   assert.equal(맞음[0].amount, 200_000_000, '보증금 2.5억 × 80% = 2억 과 상품한도 2억 중 최소');
   assert.equal(맞음[0].binding.id, 'PRODUCT');
 });
+
+/* ── 생애최초 LTV 는 무조건 80% 가 아니다 ── */
+import { resolveLtv } from '../src/core/products.js';
+
+const 생초 = {
+  limit: { ltvOverride: 0.8, ltvOverrideWhen: [
+    { condition: { or: [
+      { path: 'borrower.stressRegion', op: 'eq', value: '수도권' },
+      { path: 'borrower.regionGrade', op: 'in', value: ['투기과열', '조정대상'] },
+    ] }, value: 0.7, label: '수도권·규제지역' },
+  ] },
+};
+
+test('★ 생애최초 LTV: 지방·비규제는 80%, 수도권이면 70%, 지방이라도 규제지역이면 70%', () => {
+  assert.equal(resolveLtv(생초, { borrower: { stressRegion: '비수도권', regionGrade: '비규제' } }).value, 0.8);
+  assert.equal(resolveLtv(생초, { borrower: { stressRegion: '수도권', regionGrade: '비규제' } }).value, 0.7);
+  assert.equal(resolveLtv(생초, { borrower: { stressRegion: '비수도권', regionGrade: '조정대상' } }).value, 0.7);
+  assert.equal(resolveLtv(생초, { borrower: { stressRegion: '수도권', regionGrade: '비규제' } }).label, '수도권·규제지역');
+});
+
+test('조건부 규칙이 없으면 기본 ltvOverride', () => {
+  assert.equal(resolveLtv({ limit: { ltvOverride: 0.7 } }, { borrower: {} }).value, 0.7);
+  assert.equal(resolveLtv({ limit: {} }, { borrower: {} }).value, null);
+});
+
+/* ── 스트레스 금리: 지역별 가산폭과 적용비율이 따로 논다 ── */
+import { stressedRate } from '../src/core/stress.js';
+
+const STRESS_2026H2 = {
+  meta: { id: 'stress', 기준일: '2026-07-01', verified: false },
+  currentStage: '3단계', baseAddOn: 0.015, floor: 0.015, ceiling: 0.03,
+  byRegion: { 수도권: 0.03, 비수도권: 0.015 },
+  ratioByRegion: { 수도권: 1.0, 비수도권: 0.5 },
+  appliedRatio: { '1단계': 0.25, '2단계': 0.5, '3단계': 1.0 },
+  byRateType: { 변동: 1.0, 고정: 0 },
+  scope: ['주택담보대출'],
+};
+
+test('★ 스트레스 DSR: 수도권 3.0%p×100%, 지방 1.5%p×50% (2026년 하반기)', () => {
+  const 수도권 = stressedRate({ contractRate: 0.042, region: '수도권' }, STRESS_2026H2);
+  const 지방 = stressedRate({ contractRate: 0.042, region: '비수도권' }, STRESS_2026H2);
+  assert.equal(Math.round(수도권.forDsrOnly * 1e4) / 1e4, 0.072);    // 4.2 + 3.0
+  assert.equal(Math.round(지방.forDsrOnly * 1e4) / 1e4, 0.0495);    // 4.2 + 1.5×50%
+  // byRegion 을 적용비율로 잘못 읽으면 수도권에 100%p 가 붙는다 — 그 사고를 막는다
+  assert.ok(수도권.addOn <= 0.03, '가산폭이 상한 3.0%p 를 넘을 수 없다');
+});
+
+test('스트레스 DSR: ratioByRegion 이 없으면 단계 비율을 쓴다 (기존 동작 유지)', () => {
+  const c = { ...STRESS_2026H2, ratioByRegion: undefined };
+  const r = stressedRate({ contractRate: 0.04, region: '비수도권' }, c);
+  assert.equal(Math.round(r.forDsrOnly * 1e4) / 1e4, 0.055);   // 4.0 + 1.5×100%(3단계)
+});
+
+/* ── 규제지역 총액 상한은 규제지역에만 ── */
+import { ltvCap } from '../src/core/ltv.js';
+
+const LTV_1015 = {
+  meta: { id: 'ltv', 기준일: '2026-09-28', verified: false },
+  rules: [
+    { id: '조정대상-무주택-구입', when: { regionGrade: '조정대상', ownedHouses: 0, purpose: '구입' }, ltv: 0.4 },
+    { id: '비규제-무주택-구입', when: { regionGrade: '비규제', ownedHouses: 0, purpose: '구입' }, ltv: 0.7 },
+  ],
+  priceTiers: [
+    { regionGrades: ['투기과열', '조정대상'], upTo: 1_500_000_000, absoluteCap: 600_000_000 },
+    { regionGrades: ['투기과열', '조정대상'], upTo: 2_500_000_000, absoluteCap: 400_000_000 },
+    { regionGrades: ['투기과열', '조정대상'], upTo: null, absoluteCap: 200_000_000 },
+  ],
+};
+const 감정 = (v) => ({ amount: v, basis: '분양가' });
+
+test('★ 규제지역 20억 주택: LTV 40% = 8억이지만 총액 상한 4억에 막힌다', () => {
+  const c = ltvCap({ appraisal: 감정(2_000_000_000), regionGrade: '조정대상', ownedHouses: 0 }, LTV_1015);
+  assert.equal(c.amount, 400_000_000);
+});
+
+test('★ 비규제 20억 주택: 총액 상한이 걸리지 않는다 (LTV 70% = 14억)', () => {
+  const c = ltvCap({ appraisal: 감정(2_000_000_000), regionGrade: '비규제', ownedHouses: 0 }, LTV_1015);
+  assert.equal(c.amount, 1_400_000_000);
+});
+
+test('규제지역 10억 주택: 상한 6억보다 LTV 40% = 4억이 먼저 막는다', () => {
+  const c = ltvCap({ appraisal: 감정(1_000_000_000), regionGrade: '조정대상', ownedHouses: 0 }, LTV_1015);
+  assert.equal(c.amount, 400_000_000);
+});
