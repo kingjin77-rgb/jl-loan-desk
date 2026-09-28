@@ -7,6 +7,7 @@
  */
 
 import { el, panel, table } from './dom.js';
+import { productsChart } from './charts.js';
 import { formatKRW, formatPct } from '../core/money.js';
 import { josa } from '../core/hangul.js';
 
@@ -56,6 +57,9 @@ export function productsPanel(r, { store = null } = {}) {
   // ── 적격 상품
   if (ok.length) {
     body.push(el('h3', { text: `적격 ${ok.length}건`, style: 'margin:12px 0 6px' }));
+    // 도식이 먼저, 표가 그다음. 도식이 표를 대체하지 않는다.
+    const chart = productsChart(r);
+    if (chart) body.push(chart);
     body.push(el('div.table-scroll', {}, [table([
       { key: 'name', label: '상품', render: (x) => el('div', {}, [
         el('div', {}, [el('b', { text: x.name })]),

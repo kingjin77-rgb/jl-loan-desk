@@ -210,7 +210,7 @@ export function dsrChart(r) {
     const inside = w > 130;
     g.push(svgEl('text', {
       x: inside ? cx + 10 : cx, y: inside ? barY + barH / 2 + 4 : barY - 7,
-      fill: inside ? '#fff' : 'var(--viz-ink-sub)',
+      fill: inside ? 'var(--viz-on-bar)' : 'var(--viz-ink-sub)',
       'font-size': 11.5, 'font-weight': 700,
     }, [`${s.label} ${formatKRW(s.v)}`]));
     cx += w;
@@ -265,7 +265,7 @@ export function fundsChart(r) {
     g.push(rect);
     // 넓은 구간만 안에 라벨을 넣는다 — 좁은 칸에 글자를 욱여넣지 않는다
     if (w > 92) {
-      g.push(svgEl('text', { x: cx + 8, y: 43, fill: '#fff', 'font-size': 11, 'font-weight': 700 }, [formatKRW(item.amount)]));
+      g.push(svgEl('text', { x: cx + 8, y: 43, fill: 'var(--viz-on-cat)', 'font-size': 11, 'font-weight': 700 }, [formatKRW(item.amount)]));
     }
     legend.push({ label: item.label, fill, amount: item.amount });
     cx += w;
@@ -284,7 +284,7 @@ export function fundsChart(r) {
     });
     hoverable(rect, `<b>${esc(item.label)}</b><br>${formatKRW(item.amount)}${item.hint ? `<br><span class="sub">${esc(item.hint)}</span>` : ''}`);
     g.push(rect);
-    if (w > 92) g.push(svgEl('text', { x: cx + 8, y: 113, fill: '#fff', 'font-size': 11, 'font-weight': 700 }, [`${item.label} ${formatKRW(item.amount)}`]));
+    if (w > 92) g.push(svgEl('text', { x: cx + 8, y: 113, fill: 'var(--viz-on-bar)', 'font-size': 11, 'font-weight': 700 }, [`${item.label} ${formatKRW(item.amount)}`]));
     cx += w;
   }
 
@@ -480,4 +480,154 @@ function niceTicks(max, count) {
 
 function esc(s) {
   return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+// ════════════════════ 6. 잔금유예 — 언제 얼마를 내는가 ════════════════════
+/**
+ * 분양전환의 잔금유예는 **월 상환액이 없다.** 해마다 12월에 이자만 내고,
+ * 만기에 원금을 한 번에 갚는다. 상담사가 "그래서 언제 뭘 내느냐"를 한눈에 봐야 한다.
+ *
+ * 측정값은 하나(금액)이고 계열도 하나(잔여원금)다 → 범례가 필요 없다.
+ * 시간 축 하나만 쓴다. 이자 막대와 잔여원금 선을 다른 눈금으로 겹치면 이중축이 되므로,
+ * 잔여원금은 **선이 아니라 계단 면적**으로 같은 금액 축에 그린다.
+ */
+export function conversionChart(r) {
+  const c = r.conversion;
+  if (!c?.interest?.연도별?.length) return null;
+  const years = c.interest.연도별;
+  if (!c.interest.만기일) return null;
+
+  const t0 = `${years[0].연도}-01-01`;
+  const t1 = c.interest.만기일;
+  const span = Math.max(1, daysBetween(t0, t1));
+
+  const W = 720, H = 200;
+  const padL = 12, padR = 12;
+  const plotW = W - padL - padR;
+  const axisY = 148;
+  const x = (d) => padL + (daysBetween(t0, d) / span) * plotW;
+
+  const 최대원금 = Math.max(...years.map((y) => y.기말원금), c.balance.잔금유예금 || 1);
+  const yBal = (v) => axisY - 8 - (v / 최대원금) * 96;
+
+  const g = [];
+
+  // 잔여원금 — 계단 면적. 일부상환이 있으면 그 지점에서 내려간다.
+  const step = [];
+  let prev = c.balance.잔금유예금;
+  step.push(`${padL},${yBal(prev)}`);
+  for (const y of years) {
+    const endX = x(`${y.연도}-12-31` > t1 ? t1 : `${y.연도}-12-31`);
+    step.push(`${endX},${yBal(prev)}`);
+    step.push(`${endX},${yBal(y.기말원금)}`);
+    prev = y.기말원금;
+  }
+  g.push(svgEl('path', {
+    d: `M ${padL},${axisY - 8} L ${step.join(' L ')} L ${x(t1)},${axisY - 8} Z`,
+    fill: 'var(--viz-bar)', opacity: 0.28,
+  }));
+  g.push(svgEl('polyline', {
+    points: step.join(' '), fill: 'none',
+    stroke: 'var(--viz-bar-bind)', 'stroke-width': 2, 'stroke-linejoin': 'round',
+  }));
+
+  g.push(svgEl('line', { x1: padL, y1: axisY, x2: W - padR, y2: axisY, stroke: 'var(--viz-axis)', 'stroke-width': 1 }));
+
+  // 해마다 12월 이자 납부점
+  for (const y of years) {
+    const d = `${y.연도}-12-31` > t1 ? t1 : `${y.연도}-12-31`;
+    const px = x(d);
+    const 만기해 = y.만기해;
+    g.push(hoverable(svgEl('g', {}, [
+      svgEl('line', { x1: px, y1: axisY - 6, x2: px, y2: axisY + 6, stroke: 'var(--viz-axis)', 'stroke-width': 1 }),
+      svgEl('circle', {
+        cx: px, cy: axisY, r: 만기해 ? 6 : 4,
+        fill: 만기해 ? 'var(--viz-critical)' : 'var(--viz-c3)',
+        stroke: 'var(--viz-surface)', 'stroke-width': 2,
+      }),
+    ]), `<b>${y.연도}년 12월</b><br>이자 ${formatKRW(y.이자)} (${y.일수}일)<br>잔여원금 ${formatKRW(y.기말원금)}`));
+  }
+
+  // 일부상환 지점 — 이자가 꺾이는 곳이므로 반드시 보여야 한다
+  for (const y of years) {
+    for (const seg of y.구간 ?? []) {
+      if (seg.일부상환 == null) continue;
+      const px = x(seg.일자);
+      g.push(hoverable(svgEl('g', {}, [
+        svgEl('line', { x1: px, y1: yBal(seg.잔액) - 6, x2: px, y2: axisY, stroke: 'var(--viz-c2)', 'stroke-width': 2, 'stroke-dasharray': '3 2' }),
+        svgEl('circle', { cx: px, cy: yBal(seg.잔액), r: 5, fill: 'var(--viz-c2)', stroke: 'var(--viz-surface)', 'stroke-width': 2 }),
+      ]), `<b>일부상환 ${seg.일자}</b><br>${formatKRW(seg.일부상환)}<br>잔액 ${formatKRW(seg.잔액)}`));
+      g.push(svgEl('text', {
+        x: px, y: yBal(seg.잔액) - 10, 'text-anchor': 'middle',
+        fill: 'var(--viz-ink-sub)', 'font-size': 10, 'font-weight': 700,
+      }, [`−${formatKRW(seg.일부상환)}`]));
+    }
+  }
+
+  // 양 끝 직접 라벨 — 색만으로 의미를 전달하지 않는다
+  g.push(svgEl('text', { x: padL, y: axisY + 20, fill: 'var(--viz-ink-sub)', 'font-size': 11 }, [`계약 ${years[0].연도}년`]));
+  g.push(svgEl('text', { x: W - padR, y: axisY + 20, 'text-anchor': 'end', fill: 'var(--viz-ink)', 'font-size': 11, 'font-weight': 700 },
+    [`만기 ${c.interest.만기일} · 원금 ${formatKRW(c.interest.총원금)} 일괄`]));
+  const 온전한해 = years.find((y) => y.일수 >= 365) ?? years[0];
+  g.push(svgEl('text', { x: padL, y: 18, fill: 'var(--viz-ink)', 'font-size': 12, 'font-weight': 700 },
+    [`해마다 12월 약 ${formatKRW(온전한해.이자)} · 만기에 원금 ${formatKRW(c.interest.총원금)}`]));
+
+  const svg = svgEl('svg', {
+    viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img',
+    'aria-label': `잔금유예 일정. 계약 ${years[0].연도}년부터 ${c.interest.만기일}까지 해마다 12월 이자를 내고 만기에 원금 ${formatKRW(c.interest.총원금)}을 일괄 납부합니다.`,
+  }, g);
+  return figure('잔금유예 — 언제 얼마를 내는가', svg, '아래 표에 연도별 금액이 있습니다');
+}
+
+// ════════════════════ 7. 상품별 한도 비교 ════════════════════
+/**
+ * 적격 상품의 **한도만** 비교한다.
+ *
+ * 금리·월상환액을 같은 그림에 겹치면 눈금이 둘이 된다(이중축) — 하지 않는다.
+ * 금리는 막대 끝 라벨로 붙이고, 자세한 값은 옆의 표가 가진다.
+ */
+export function productsChart(r) {
+  const rows = (r.products?.rows ?? []).filter((x) => x.eligible && x.amount > 0);
+  if (rows.length < 2) return null;
+
+  const max = Math.max(...rows.map((x) => x.amount));
+  const best = r.products?.best?.row ?? null;
+
+  const rowH = 30;
+  const W = 720;
+  const H = rows.length * rowH + 16;
+  const labelW = 190;
+  const barW = W - labelW - 150;
+
+  const g = rows.map((x, i) => {
+    const y = i * rowH + 8;
+    const w = Math.max(2, (x.amount / max) * barW);
+    const 추천 = best && x.variantId === best.variantId;
+    return hoverable(svgEl('g', {}, [
+      svgEl('text', { x: labelW - 8, y: y + 14, 'text-anchor': 'end', fill: 'var(--viz-ink)', 'font-size': 12 },
+        [x.name.length > 16 ? x.name.slice(0, 15) + '…' : x.name]),
+      svgEl('rect', {
+        x: labelW, y: y + 3, width: w, height: 16, rx: 4,
+        fill: 추천 ? 'var(--viz-bar-bind)' : 'var(--viz-bar)',
+      }),
+      svgEl('text', { x: labelW + w + 8, y: y + 15, fill: 'var(--viz-ink)', 'font-size': 11, 'font-weight': 추천 ? 700 : 400 },
+        [`${formatKRW(x.amount)} · ${formatPct(x.rate)}`]),
+      // 추천을 색만으로 표시하지 않는다
+      추천 ? svgEl('text', { x: labelW - 8 - measure(x.name), y: y + 14, fill: 'var(--viz-ink-muted)', 'font-size': 10 }, ['★']) : null,
+    ].filter(Boolean)),
+      `<b>${x.name}</b><br>한도 ${formatKRW(x.amount)}<br>금리 ${formatPct(x.rate)}`
+      + (x.monthlyPayment != null ? `<br>월 ${formatKRW(x.monthlyPayment)}` : '')
+      + (x.binding ? `<br>${x.binding.label}에서 막힘` : ''));
+  });
+
+  const svg = svgEl('svg', {
+    viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img',
+    'aria-label': `상품별 한도 비교. ${rows.map((x) => `${x.name} ${formatKRW(x.amount)}`).join(', ')}.`,
+  }, g);
+  return figure('상품별 한도', svg, '★ 는 금리가 가장 낮은 상품입니다');
+}
+
+/** 글자 폭 어림 — ★ 를 이름 왼쪽에 붙일 자리를 잡는 용도. */
+function measure(text) {
+  return Math.min(16, text.length) * 6.2 + 6;
 }

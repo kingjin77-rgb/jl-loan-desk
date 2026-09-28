@@ -17,6 +17,7 @@ function details(children, label = '상세 설정') {
 import { moneyField, pctField, intField, textField, dateField, selectField, segField, checkbox, editedChip, autoChip, inlineMoney, inlinePct } from './fields.js';
 import { OPTIONS } from '../state/defaults.js';
 import { formatKRW, formatNumber } from '../core/money.js';
+import { checkPrepayUnit } from '../core/bunyangjeonhwan.js';
 import { regionKeys } from '../core/bangongje.js';
 
 /** 자동입력된 경로면 칩을 붙인다. */
@@ -421,8 +422,66 @@ export function conversionPanel({ store, open, onToggle }) {
           title: '유공자 자격으로 공급받은 경우에는 요건과 무관하게 신청 가능합니다',
         }),
       ]),
+
+      // ── 일부상환. 100만원 단위로 언제든 가능하고 중도상환수수료가 없다.
+      //    넣으면 그 날짜 이후로는 줄어든 원금에만 이자가 붙는다.
+      el('p.tiny.faint', { text: '④ 일부상환 (선택)', style: 'margin:12px 0 2px' }),
+      prepayRows(store, c),
+      el('button.btn.sm', {
+        type: 'button', text: '+ 일부상환 추가',
+        onClick: () => store.set('conversion.일부상환', [...(c.일부상환 ?? []), { date: null, amount: 0 }]),
+      }),
+      el('p.tiny.faint', { text: '100만원 단위로 언제든 가능하고 중도상환수수료가 없습니다.' }),
     );
   }
 
   return panel('분양전환', body, { id: 'panel-conversion', actions: head });
+}
+
+
+/**
+ * 잔금유예 일부상환 행.
+ *
+ * 100만원 단위가 아니면 접수되지 않으므로 **그 자리에서** 알려 준다.
+ * 저장한 뒤에 반려되면 상담이 한 번 더 필요해진다.
+ */
+function prepayRows(store, c) {
+  const list = c.일부상환 ?? [];
+
+  // ★ 목록을 클로저의 c 에서 읽으면 안 된다.
+  //   입력 중에는 화면을 다시 그리지 않으므로(포커스 보호) c 가 낡은 값으로 남는다.
+  //   금액을 넣고 날짜를 넣으면, 날짜 저장이 금액 없던 시절의 목록을 덮어써
+  //   금액이 0 으로 돌아간다. 실제로 그랬다 — 일부상환이 계산에 전혀 반영되지 않았다.
+  //   항상 store 에서 지금 값을 읽는다.
+  const now = () => store.get().conversion?.일부상환 ?? [];
+  const update = (i, patch) =>
+    store.set('conversion.일부상환', now().map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const remove = (i) => store.set('conversion.일부상환', now().filter((_, j) => j !== i));
+
+  return el('div.rows', {}, list.map((r, i) => {
+    const warn = el('span.tiny.warn');
+    const paint = (amount) => {
+      const u = checkPrepayUnit(amount);
+      warn.textContent = amount > 0 && !u.ok ? u.message : '';
+      warn.title = warn.textContent;
+    };
+
+    const amountInput = inlineMoney(r.amount, (v) => { update(i, { amount: v }); paint(v); }, {
+      placeholder: '금액(만원)',
+      label: `일부상환 ${i + 1} 금액(만원)`,
+      title: '100만원 단위로만 가능합니다',
+    });
+    paint(r.amount);
+
+    return el('div.row-item.prepay', {}, [
+      el('input', {
+        type: 'date', value: r.date ?? '',
+        'aria-label': `일부상환 ${i + 1} 날짜`,
+        onInput: (e) => update(i, { date: e.target.value || null }),
+      }),
+      amountInput,
+      warn,
+      el('button.x', { type: 'button', text: '×', title: '삭제', onClick: () => remove(i) }),
+    ]);
+  }));
 }

@@ -8,7 +8,7 @@
 import { el, panel, table, replace } from './dom.js';
 import { formatKRW, formatPct, formatNumber } from '../core/money.js';
 import { formatKo } from '../core/dates.js';
-import { limitChart, dsrChart, fundsChart, timelineChart, scenarioChart } from './charts.js';
+import { limitChart, dsrChart, fundsChart, timelineChart, scenarioChart, conversionChart } from './charts.js';
 
 // ───────────────────────── 상단 요약 ─────────────────────────
 
@@ -362,6 +362,7 @@ export function conversionPanel(r, fold = {}) {
     children.push(
       el('h3.sub', { text: '③ 잔금유예 이자 — 매년 12월 일할계산, 연납' }),
       el('p.tiny.faint', { text: `이자는 미룬 잔금 ${formatKRW(c.balance.잔금유예금)}에 붙습니다 (분할납부액이 아닙니다).` }),
+      conversionChart(r),
       el('p.tiny.faint', {
         text: `금리 ${formatPct(c.interest.annualRate)} (${c.금리출처}) · ${c.interest.일수기준}일 기준 · ` +
               `만기 ${c.interest.만기일} (${c.interest.만기근거}) · 총이자 ${formatKRW(c.interest.총이자)}`,

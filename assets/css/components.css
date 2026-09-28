@@ -186,3 +186,7 @@ dialog.editor.policy { max-width: 720px; }
 .policy-section .sec { margin: 14px 0 6px; }
 .check { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; }
 .banner.info { background: var(--surface-2); color: var(--ink-sub); }
+
+/* 일부상환 행 — 날짜·금액·경고·삭제 */
+.row-item.prepay { grid-template-columns: minmax(120px,1fr) minmax(90px,1fr) auto auto; }
+.row-item.prepay .tiny.warn { align-self: center; }

@@ -69,6 +69,13 @@
   --viz-c5:#E87BA4;  /* 부대비용 */
 
   /* 상태 — 계열색으로 절대 재사용하지 않는다. 항상 아이콘·라벨과 함께. */
+  /* 색칠된 마크 **위에** 얹는 글자. 한 값으로는 안 된다 —
+     진한 단색 막대와 밝은 계열색에 필요한 글자색이 반대다.
+       --viz-on-bar : --viz-bar-bind 위   (라이트 #156082 ↔ 흰 6.94 / 다크 #6BB2CE ↔ 검정 7.82)
+       --viz-on-cat : --viz-c1..c5 위     (라이트 최악 4.76 / 다크 최악 4.68, 둘 다 검정)
+     흰색 하나로 쓰면 라이트의 c3·c4·c5 가 2.17~2.82, 다크의 막대가 2.36 이 되어 못 읽는다. */
+  --viz-on-bar:#FFFFFF;
+  --viz-on-cat:#000000;
   --viz-good:#0CA30C;
   --viz-critical:#D03B3B;
   --viz-neutral:#D9D9D9;
@@ -92,6 +99,7 @@
     --viz-ink:#FFFFFF; --viz-ink-sub:#C3C2B7; --viz-ink-muted:#898781;
     --viz-bar:#37718B; --viz-bar-bind:#6BB2CE;
     --viz-c1:#3987E5; --viz-c2:#D95926; --viz-c3:#199E70; --viz-c4:#C98500; --viz-c5:#D55181;
+    --viz-on-bar:#111417; --viz-on-cat:#111417;
     --viz-good:#0CA30C; --viz-critical:#E66767; --viz-neutral:#3A3A37;
   }
 }
