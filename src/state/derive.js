@@ -89,6 +89,8 @@ export function derive(input, policies, opts = {}) {
       ownedHouses: input.borrower.ownedHouses,
       purpose: input.product.purpose,
       isFirstTime: input.borrower.isFirstTime,
+      // 수도권 여부는 이미 있는 스트레스금리 지역구분을 그대로 쓴다(같은 것을 두 번 묻지 않는다).
+      isMetro: (input.borrower.stressRegion ?? '수도권') === '수도권',
       deductions,
     }, policies.ltv));
   } catch (e) {

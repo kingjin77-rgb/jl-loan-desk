@@ -263,3 +263,28 @@ test('규제지역 10억 주택: 상한 6억보다 LTV 40% = 4억이 먼저 막�
   const c = ltvCap({ appraisal: 감정(1_000_000_000), regionGrade: '조정대상', ownedHouses: 0 }, LTV_1015);
   assert.equal(c.amount, 400_000_000);
 });
+
+/* ── 6.27 대책: 수도권은 비규제라도 생애최초 70%, 주담대 최대 6억 ── */
+const LTV_627 = {
+  meta: { id: 'ltv', 기준일: '2026-09-28', verified: false },
+  rules: [
+    { id: '비규제-수도권-생초', when: { regionGrade: '비규제', ownedHouses: 0, isFirstTime: true, purpose: '구입', isMetro: true }, ltv: 0.7 },
+    { id: '비규제-생초', when: { regionGrade: '비규제', ownedHouses: 0, isFirstTime: true, purpose: '구입' }, ltv: 0.8 },
+    { id: '비규제-무주택', when: { regionGrade: '비규제', ownedHouses: 0, purpose: '구입' }, ltv: 0.7 },
+  ],
+  priceTiers: [{ regionGrades: ['비규제'], metro: true, upTo: null, absoluteCap: 600_000_000 }],
+};
+
+test('★ 생애최초 규제 LTV: 비규제라도 수도권이면 70%, 지방이면 80%', () => {
+  const 수도권 = ltvCap({ appraisal: 감정(450_000_000), regionGrade: '비규제', ownedHouses: 0, isFirstTime: true, isMetro: true }, LTV_627);
+  const 지방 = ltvCap({ appraisal: 감정(450_000_000), regionGrade: '비규제', ownedHouses: 0, isFirstTime: true, isMetro: false }, LTV_627);
+  assert.equal(수도권.amount, 315_000_000);   // 4.5억 × 70%
+  assert.equal(지방.amount, 360_000_000);     // 4.5억 × 80%
+});
+
+test('★ 수도권 비규제 12억: LTV 70% = 8.4억이지만 6억 상한 (6.27) — 지방은 상한 없음', () => {
+  const 수도권 = ltvCap({ appraisal: 감정(1_200_000_000), regionGrade: '비규제', ownedHouses: 0, isMetro: true }, LTV_627);
+  const 지방 = ltvCap({ appraisal: 감정(1_200_000_000), regionGrade: '비규제', ownedHouses: 0, isMetro: false }, LTV_627);
+  assert.equal(수도권.amount, 600_000_000);
+  assert.equal(지방.amount, 840_000_000);
+});

@@ -13,7 +13,7 @@
 // SHELL 목록이나 소스가 바뀌면 이 번호를 올린다 — 낡은 프리캐시를 비우고 새로 담는다.
 // (평소에는 네트워크 우선이라 온라인 사용자는 항상 최신 파일을 받는다. 이 번호는
 //  오프라인용으로 미리 담아 둔 묶음을 갈아 끼우기 위한 것이다.)
-const VERSION = 'jl-loan-desk-v5';
+const VERSION = 'jl-loan-desk-v6';
 const SHELL = [
   './',
   './index.html',

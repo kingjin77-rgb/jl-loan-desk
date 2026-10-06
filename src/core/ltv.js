@@ -28,10 +28,13 @@ export const APPRAISAL_BASIS = {
  * @param {Array} [p.deductions]   차감 항목(방공제 등)
  * @param {object} config          policy/ltv.json
  */
-export function ltvCap({ appraisal, regionGrade, ownedHouses, purpose = '구입', isFirstTime = false, deductions = [] }, config) {
+export function ltvCap({ appraisal, regionGrade, ownedHouses, purpose = '구입', isFirstTime = false, isMetro = null, deductions = [] }, config) {
   const source = sourceOf(config);
   const houseValue = won(appraisal?.amount);
-  const ctx = { regionGrade, ownedHouses: normalizeHouses(ownedHouses), purpose, isFirstTime };
+  // isMetro: 수도권(서울·인천·경기) 여부. 6.27 대책은 **비규제라도 수도권이면**
+  //   생애최초 LTV 를 80%→70% 로, 주담대를 최대 6억으로 묶었다. 규제지역 등급만으로는
+  //   이걸 가를 수 없다 — 수도권 비규제 생애최초가 80% 로 나오던 원인이다.
+  const ctx = { regionGrade, ownedHouses: normalizeHouses(ownedHouses), purpose, isFirstTime, isMetro };
 
   const rule = matchRule(config?.rules, ctx);
   if (!rule) {
@@ -44,7 +47,7 @@ export function ltvCap({ appraisal, regionGrade, ownedHouses, purpose = '구입'
   // 주택가격 구간별 차등이 있으면 적용 (예: 15억 이하 / 15~25억 / 25억 초과)
   // ★ 총액 상한(15억 이하 6억 등)은 **규제지역에만** 있다. regionGrades 가 적힌 구간은
   //   그 지역에서만 맞춘다 — 비규제에 6억 상한을 걸면 한도를 잘못 깎는다.
-  const tier = matchTier(config?.priceTiers, houseValue, regionGrade);
+  const tier = matchTier(config?.priceTiers, houseValue, regionGrade, isMetro);
   // 이 규칙·구간이 예시로 메워진 칸이면 결과에 「예시」가 붙는다. 파일 전체가 아니라 이 칸 기준.
   source && (source.example = usesExample(config?.meta,
     `rules[${(config?.rules ?? []).indexOf(rule)}].ltv`,
@@ -116,9 +119,12 @@ function eq(a, b) {
   return String(a) === String(b);
 }
 
-function matchTier(tiers, houseValue, regionGrade = null) {
+function matchTier(tiers, houseValue, regionGrade = null, isMetro = null) {
   if (!Array.isArray(tiers) || !tiers.length) return null;
-  const mine = tiers.filter((t) => !Array.isArray(t.regionGrades) || t.regionGrades.includes(regionGrade));
+  // regionGrades 가 있으면 그 등급에서만, metro 가 있으면 수도권 여부가 맞을 때만.
+  const mine = tiers.filter((t) =>
+    (!Array.isArray(t.regionGrades) || t.regionGrades.includes(regionGrade))
+    && (t.metro == null || t.metro === isMetro));
   if (!mine.length) return null;
   for (const t of mine) {
     if (t.upTo == null || houseValue <= t.upTo) return t;
