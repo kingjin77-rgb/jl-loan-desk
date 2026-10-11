@@ -127,3 +127,19 @@ test('★ 예시 규제값으로 만든 상한은 isExample 로 드러난다 —
   assert.equal(실제.isExample, false);
   assert.deepEqual(실제.exampleCaps, []);
 });
+
+test('★ 상품을 골라도 비교표의 다른 상품 한도에 그 상품의 상한이 씌워지지 않는다', () => {
+  const 두상품 = [{
+    ...상품문서[0],
+    variants: [
+      상품문서[0].variants[0],                                               // 최대 2억
+      { ...상품문서[0].variants[0], variantId: 'testfund-small', name: '작은 상품', limit: { max: 50_000_000 } },
+    ],
+  }];
+  const 안고름 = derive(입력(), POLICIES, { products: 두상품 });
+  const 고름 = derive(입력({ product: { selectedVariantId: 'testfund-small' } }), POLICIES, { products: 두상품 });
+  const 큰상품 = (r) => r.products.rows.find((x) => x.variantId === 'testfund-general').amount;
+  assert.equal(고름.limit.finalAmount <= 50_000_000, true, '최종 한도는 고른 상품 기준');
+  assert.equal(큰상품(고름), 큰상품(안고름), '다른 상품 행은 고르기 전과 같아야 한다');
+  assert.ok(큰상품(고름) > 50_000_000);
+});

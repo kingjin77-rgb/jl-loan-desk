@@ -21,12 +21,43 @@ import {
 import { productsPanel } from './ui/result-products.js';
 import { openComplexEditor } from './ui/complex-editor.js';
 import { openPolicyEditor } from './ui/policy-editor.js';
+import { quickInputs, quickResults, quickSummary } from './ui/quick.js';
 import * as complexStore from './io/complex-store.js';
 import { expandYearMonth } from './core/dates.js';
 import { formatKRW } from './core/money.js';
 import { DISCLAIMER_SHORT, DISCLAIMER_FULL } from './ui/disclaimer.js';
 
+function readMode() {
+  try { return localStorage.getItem('jl-loan-desk.mode') === 'desk' ? 'desk' : 'quick'; } catch { return 'quick'; }
+}
+
+/**
+ * 분양전환 상담 화면에서 계산에 넘기는 입력.
+ *
+ * 저장된 상태를 바꾸지 않고(순수 변환) 이 화면에 맞는 값만 덮는다:
+ *  - 분양전환은 항상 켜져 있다
+ *  - 담보가액 = 분양가(A). 분양가를 두 번 넣게 하지 않는다
+ *  - 주택담보 상품만 비교한다
+ * store 를 직접 바꾸면 「새 상담」 뒤에 다시 맞춰 줘야 하고, render 안에서 바꾸면
+ * 끝없이 다시 그린다. 그래서 계산 직전에 한 번 변환한다.
+ */
+function quickInput(input) {
+  const conv = input.conversion ?? {};
+  return {
+    ...input,
+    conversion: { ...conv, enabled: true },
+    collateral: {
+      ...input.collateral,
+      amount: conv.분양가 || input.collateral.amount,
+      basis: '분양가',
+    },
+    product: { ...input.product, loanKind: '주택담보' },
+  };
+}
+
 const ui = {
+  // quick: 분양전환 상담 화면(현장용, 기본) / desk: 상세 계산 화면
+  mode: readMode(),
   monthlySchedule: false,
   bannerOpen: false,
   eligibilityOpen: false,
@@ -223,7 +254,8 @@ function mountShell() {
 }
 
 function render({ keepRail = false } = {}) {
-  const input = store.get();
+  const quick = ui.mode === 'quick';
+  const input = quick ? quickInput(store.get()) : store.get();
   let result;
   try {
     result = derive(input, ctx.policies, { products: ctx.products });
@@ -241,6 +273,9 @@ function render({ keepRail = false } = {}) {
   // 고른 상품으로 한도가 나왔으면 한도·결론·자금수지·요약도 정상 표시한다.
   // (규제 수치가 빠졌다는 사실은 한도 패널의 노란 띠가 알린다)
   const 한도있음 = !hasErrors || (onlyLimitBlocked && result.limit?.basis === '상품 기준');
+
+  document.body.dataset.mode = ui.mode;
+  if (quick) return renderQuick(result, keepRail);
 
   document.body.dataset.tab = ui.tab;
   document.body.dataset.tools = ui.toolsOpen ? 'open' : 'closed';
@@ -261,6 +296,50 @@ function render({ keepRail = false } = {}) {
   replace(shell.results, resultPanels(result, { 한도무관, 한도있음 }));
   replace(shell.printFooter, [printFooter(result)]);
   replace(shell.tabbar, [tabbar(result)]);
+}
+
+/**
+ * 분양전환 상담 화면. 입력과 결과가 한 화면에 위아래로 있고 탭 전환이 없다.
+ * 상단 경고 박스 3개 대신 한 줄 상태만 둔다(눌러서 펼침).
+ */
+function renderQuick(result, keepRail) {
+  if (!keepRail) {
+    replace(shell.topbar, topbarChildren(result));
+    replace(shell.banners, [quickStatus(), ui.bannerOpen ? banners() : null, installBar()].flat().filter(Boolean));
+    replace(shell.rail, quickInputs({ store, ui, onToggle: (id, d) => toggleCollapse(id, d) }));
+  }
+  replace(shell.summary, [quickSummary(result)].filter(Boolean));
+  replace(shell.results, quickResults(result, { ctx, onAdvanced: () => setMode('desk') }));
+  replace(shell.printFooter, [printFooter(result)]);
+  replace(shell.tabbar, []);
+}
+
+/** 설정 상태를 한 줄로. 상담 중에는 이거면 충분하고, 필요하면 눌러서 자세히 본다. */
+function quickStatus() {
+  const t = ctx.trust;
+  const 문제 = t.demo.length ? '⚠ 데모 수치' : null;
+  return el('div.q-status', { class: 문제 ? 'danger' : '' }, [
+    el('span', { text: 문제 ?? `정책대출·분양전환: 상담일지 기준 · 은행 규제값: 웹 조사(미검증)` }),
+    el('button.linklike', {
+      type: 'button',
+      text: ui.bannerOpen ? '접기' : '자세히',
+      onClick: () => { ui.bannerOpen = !ui.bannerOpen; render(); },
+    }),
+  ]);
+}
+
+function setMode(mode) {
+  ui.mode = mode;
+  try { localStorage.setItem('jl-loan-desk.mode', mode); } catch { /* 저장 못 해도 이번엔 바뀐다 */ }
+  if (mode === 'desk') {
+    // 상세 화면으로 넘어갈 때 분양전환 입력을 그대로 이어 쓰게 맞춘다.
+    const s = store.get();
+    if (s.conversion?.분양가) store.set('collateral.amount', s.conversion.분양가);
+    store.set('conversion.enabled', true);
+    ui.conversionOpen = true;
+  }
+  window.scrollTo(0, 0);
+  render();
 }
 
 function railPanels(result) {
@@ -327,6 +406,9 @@ function topbarChildren(result) {
       el('span', {}, ['JL 대출데스크 ', el('span.sub', { text: '법무법인 제이엘' })]),
     ]),
     el('div.spacer'),
+    ui.mode === 'quick'
+      ? el('button.btn.sm.mode-switch', { type: 'button', text: '상세 계산', onClick: () => setMode('desk') })
+      : el('button.btn.sm.mode-switch.primary', { type: 'button', text: '분양전환 상담', onClick: () => setMode('quick') }),
     el('button.btn.sm.tools-toggle', {
       type: 'button',
       text: ui.toolsOpen ? '닫기' : '메뉴',

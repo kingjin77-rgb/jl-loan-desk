@@ -180,17 +180,20 @@ export function derive(input, policies, opts = {}) {
         auto: autoPicked,
       };
 
-      caps.push(productCap(v, eligCtx, { houseValue }));
+      // ★ 고른 상품이 만든 상한에는 표시를 단다. 상품 비교표의 **다른** 상품 행에
+      //   이 상한이 씌워지면 안 된다 — 기금승계를 고르면 디딤돌·보금자리 한도까지
+      //   전부 7,500만원으로 나오던 원인이다.
+      caps.push({ ...productCap(v, eligCtx, { houseValue }), fromSelected: true });
 
       if (v.limit?.dtiOverride != null) {
-        caps.push(dtiCap({
+        caps.push({ fromSelected: true, ...dtiCap({
           annualIncome: totalIncome(input.borrower),
           existingDebts: input.borrower.existingDebts ?? [],
           newLoan: newLoanForDsr,
           regionGrade: input.borrower.regionGrade,
           rateOverride: v.limit.dtiOverride,
           rateLabel: v.name,
-        }, policies.dsr));
+        }, policies.dsr) });
       }
     }
   }
@@ -355,6 +358,7 @@ export function derive(input, policies, opts = {}) {
       //   DSR 은 전세에도 걸리므로 남긴다.
       otherCaps: caps.filter((c) => {
         if (c.id === CAP_IDS.MANUAL) return false;
+        if (c.fromSelected) return false;   // 고른 상품 자신의 상한은 다른 상품에 씌우지 않는다
         if (kind === '전세' && (c.id === CAP_IDS.LTV || c.id === CAP_IDS.MCI)) return false;
         return true;
       }),
@@ -424,7 +428,9 @@ export function derive(input, policies, opts = {}) {
       {
         자산가액: conv.자산가액 || null,
         자동차가액: conv.자동차가액 || null,
-        월소득: conv.월소득 || null,
+        // 월소득을 따로 안 넣었으면 부부합산 연소득 ÷ 12 로 본다. 현장에서 가장 흔한 경우다.
+        // 다른 가구원 소득이 있으면 상담사가 직접 넣어야 하므로 「자동」임을 결과에 표시한다.
+        월소득: conv.월소득 || (totalIncome(input.borrower) > 0 ? Math.round(totalIncome(input.borrower) / 12) : null),
         가구원수: conv.가구원수,
         국가유공자: conv.국가유공자,
       },
@@ -443,6 +449,9 @@ export function derive(input, policies, opts = {}) {
     //   → 잔금유예금 = 2억7,500만 − 2억 = 7,500만  ← 「최소 잔금유예금 75,000,000원」과 일치
     const 분할납부시필요액 = Math.max(0,
       분할납부액 - won(conv.납입보증금 ?? 0) + won(conv.보증금대출 ?? 0) - won(conv.본인준비금 ?? 0));
+
+    // 월소득을 연소득÷12 로 채웠는지. LH 결과에 그 사실을 적는다.
+    lh.월소득자동 = !conv.월소득 && totalIncome(input.borrower) > 0;
 
     conversion = {
       funds, cap, balance, interest, lh,

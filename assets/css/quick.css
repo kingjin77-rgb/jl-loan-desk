@@ -1,0 +1,80 @@
+/*
+ * 분양전환 상담 화면 (body[data-mode="quick"]).
+ *
+ * 현장에서 휴대폰 한 손으로 쓴다: 입력 7칸 → 바로 아래 결과. 탭 전환 없음.
+ * 종이 「분양전환 상담일지」와 같은 순서(①필요자금 ②LH ③납부방법 ④대출 ⑤전세)로 둔다.
+ */
+
+/* 탭바·탭 숨김 — 입력과 결과를 한 화면에 위아래로 */
+body[data-mode="quick"] .tabbar,
+body[data-mode="quick"] .tabbar-slot { display: none; }
+body[data-mode="quick"] .rail,
+body[data-mode="quick"] .results { display: flex !important; }
+
+/* 데스크톱: 왼쪽 입력, 오른쪽 결과 */
+body[data-mode="quick"] .main { grid-template-columns: minmax(320px, 400px) 1fr; }
+@media (max-width: 900px) {
+  body[data-mode="quick"] .main { grid-template-columns: 1fr; padding-bottom: var(--s5); }
+  body[data-mode="quick"] footer.foot { padding-bottom: var(--s5); }
+}
+
+/* 한 줄 상태 — 경고 박스 3개 대신 */
+.q-status {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s2);
+  padding: 6px var(--s4);
+  font-size: var(--fs-xs); color: var(--ink-sub);
+  background: var(--bg-alt); border-bottom: 1px solid var(--border);
+}
+.q-status.danger { background: var(--danger-soft); color: var(--danger); font-weight: 700; }
+.linklike { background: none; border: 0; padding: 4px 6px; color: var(--accent); text-decoration: underline; font: inherit; cursor: pointer; }
+
+/* 상단 고정 요약 — 세 숫자 */
+body[data-mode="quick"] .summary-slot { position: sticky; top: 0; z-index: 5; }
+.q-summary .cell .v { font-size: var(--fs-lg); }
+.q-summary .cell .note { font-size: var(--fs-xs); color: var(--ink-faint); }
+
+/* 결과 카드 */
+.q-card {
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: var(--s3) var(--s4);
+}
+.q-h { margin: 0 0 var(--s2); font-size: var(--fs-md); font-weight: 800; }
+.q-big { font-size: var(--fs-hero, 28px); font-weight: 800; letter-spacing: -.03em; color: var(--accent); }
+.q-formula { font-size: var(--fs-sm); color: var(--ink-sub); margin-top: 4px; }
+
+.q-verdict { font-weight: 800; padding: 8px 10px; border-radius: var(--radius-sm); margin-bottom: var(--s2); }
+.q-verdict.ok   { background: var(--ok-soft); color: var(--ok); }
+.q-verdict.bad  { background: var(--danger-soft); color: var(--danger); }
+.q-verdict.wait { background: var(--bg-alt); color: var(--ink-sub); }
+
+.q-row {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px var(--s2);
+  padding: 6px 0; border-top: 1px solid var(--border); align-items: baseline;
+}
+.q-row > :nth-child(3) { grid-column: 1 / -1; }
+.q-row .num { font-variant-numeric: tabular-nums; font-weight: 700; text-align: right; }
+.q-row .ok { color: var(--ok); }
+.q-row .bad { color: var(--danger); font-weight: 700; }
+
+/* 일시납 | 분할납부 두 칸 */
+.q-cols { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
+@media (max-width: 520px) { .q-cols { grid-template-columns: 1fr; } }
+.q-col { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--s2) var(--s3); }
+.q-col-h { font-weight: 800; margin-bottom: 6px; color: var(--accent); }
+.q-kv { display: flex; justify-content: space-between; gap: var(--s2); padding: 3px 0; font-variant-numeric: tabular-nums; }
+.q-kv.total { border-top: 2px solid var(--border-strong); margin-top: 6px; padding-top: 6px; font-size: var(--fs-md); }
+.q-kv .warn, .q-warn { color: var(--warn); font-weight: 700; }
+.q-warn { padding: 4px 0; font-size: var(--fs-sm); }
+
+.q-fail summary { cursor: pointer; color: var(--ink-sub); font-size: var(--fs-sm); padding: 6px 0; }
+.q-foot { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; padding: var(--s2) 0; }
+
+/* 인쇄: 입력칸은 숨기고 결과 카드만, 카드가 쪼개지지 않게 */
+@media print {
+  /* 위의 「rail 항상 보이기」(!important)를 인쇄에서는 되돌린다 — 입력칸이 종이에 찍히면 안 된다 */
+  body[data-mode="quick"] .rail { display: none !important; }
+  body[data-mode="quick"] .main { grid-template-columns: 1fr; }
+  body[data-mode="quick"] .q-status,
+  body[data-mode="quick"] .q-foot button { display: none; }
+  .q-card { break-inside: avoid; border-color: #999; }
+}
