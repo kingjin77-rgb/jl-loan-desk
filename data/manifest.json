@@ -22,7 +22,8 @@
         "bangongje": "policy/bangongje.2026-01-02.json",
         "regions": "policy/regions.2026-09-19.json",
         "mci": "policy/mci.2026-09-19.json",
-        "bunyangjeonhwan": "policy/bunyangjeonhwan.2026-10-15.json"
+        "bunyangjeonhwan": "policy/bunyangjeonhwan.2026-10-15.json",
+        "sangdamilji": "policy/sangdamilji-jeonju.2026-10-15.json"
       },
       "products": [
         "products/general-mortgage.2026-09-19.json",

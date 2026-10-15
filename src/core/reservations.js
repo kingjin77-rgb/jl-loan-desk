@@ -11,8 +11,6 @@
  *   만들 때만 쓴다. 명단은 상담사 기기의 브라우저에만 남고 어디로도 보내지 않는다.
  */
 
-import { formatKRW } from './money.js';
-
 export const STATUS = Object.freeze({
   예약: '예약',       // 명단에만 있음 (아직 안 옴)
   확인: '확인',       // 현장 도착, 예약 확인 체크
@@ -201,48 +199,4 @@ export function toCsv(list, states = {}) {
  */
 export function smsHref(phone, body, { ios = false } = {}) {
   return `sms:${digits(phone)}${ios ? '&' : '?'}body=${encodeURIComponent(body)}`;
-}
-
-/**
- * 상담 결과 → 고객에게 보낼 문자 초안. 상담사가 화면에서 고친 뒤 보낸다.
- *
- * @param {object} p
- * @param {string} p.동 @param {string} p.호
- * @param {boolean} p.불가        저소득층(LH) 요건 미충족
- * @param {string[]} [p.불가사유]
- * @param {boolean|null} [p.lh대상] LH 검증 대상 여부 (null = 판정 전)
- * @param {number} [p.필요자금] @param {number} [p.기금승계] @param {number} [p.일시납후]
- * @param {number} [p.분할납부시필요액] @param {number} [p.잔금유예금] @param {string} [p.만기일]
- * @param {string} [p.lh신청기한]  '10/21(수)까지 LH검증신청서 제출'
- * @param {Array<{과목:string,일전:number}>} [p.신청시기]
- * @param {string} [p.보내는곳]
- */
-export function consultMessage(p) {
-  const L = [];
-  const 보내는곳 = p.보내는곳 || '법무법인 제이엘';
-  L.push(`[${보내는곳}] 분양전환 상담 결과 안내`);
-  L.push(`${p.동}동 ${p.호}호 고객님, 오늘 상담에 참석해 주셔서 감사합니다.`);
-  L.push('');
-  if (p.불가) {
-    L.push('■ 결과: 저소득층(LH 검증) 요건에 해당하지 않아 대상이 아닙니다.');
-    if (p.불가사유?.length) L.push(`  사유: ${p.불가사유.join(', ')}`);
-  } else {
-    if (p.필요자금 > 0) L.push(`■ 필요자금: ${formatKRW(p.필요자금)}`);
-    if (p.lh대상 === true) L.push(`■ 저소득층(LH 검증): 대상${p.lh신청기한 ? ` — ${p.lh신청기한}` : ''}`);
-    else if (p.lh대상 == null) L.push('■ 저소득층(LH 검증): 서류 확인 후 판정');
-    if (p.필요자금 > 0) {
-      L.push(p.기금승계 > 0
-        ? `■ 일시납: 기금대출 승계 ${formatKRW(p.기금승계)} 후 ${formatKRW(p.일시납후 ?? 0)} 추가 마련`
-        : `■ 일시납: ${formatKRW(p.필요자금)} 마련`);
-      if (p.잔금유예금 > 0) {
-        L.push(`■ 분할납부: 지금 ${formatKRW(p.분할납부시필요액 ?? 0)}, 잔금유예 ${formatKRW(p.잔금유예금)}${p.만기일 ? `(${p.만기일}까지)` : ''}`);
-      }
-    }
-    if (p.신청시기?.length) {
-      L.push(`■ 대출 신청시기(잔금일 기준): ${p.신청시기.map((x) => `${x.과목.replace(/대출$/, '')} ${x.일전}일 전`).join(', ')}`);
-    }
-  }
-  L.push('');
-  L.push('※ 상담 가이드이며, 정확한 한도·금리·조건은 취급기관 확인이 필요합니다.');
-  return L.join('\n');
 }

@@ -1,5 +1,5 @@
 /**
- * 현장 접수 — 예약 명단 읽기 · 예약자 찾기 · 문자 문구 · 저소득층 불가 판정.
+ * 현장 접수 — 예약 명단 읽기 · 예약자 찾기 · 현황 · 저소득층 불가 판정.
  *
  * 명단 파일은 **가짜**(test/fixtures/sheets, 번호 전부 010-0000-xxxx)다.
  * 실제 명단은 저장소에 넣지 않는다 — 공개 저장소이고 연락처가 들어 있다.
@@ -9,7 +9,7 @@
 import { test, assert } from './env.js';
 import { readSheet, parseCsv } from '../src/io/sheet-reader.js';
 import {
-  fromRows, search, slotKey, maskPhone, bySlot, totals, toCsv, smsHref, consultMessage, nextTicket, STATUS,
+  fromRows, search, slotKey, maskPhone, bySlot, totals, toCsv, smsHref, nextTicket, STATUS,
 } from '../src/core/reservations.js';
 import { lh불가 } from '../src/core/lh-gate.js';
 
@@ -95,27 +95,6 @@ test('현황 CSV: 번호는 가려서 내보낸다', () => {
 test('문자 링크: iOS 는 &body, 그 외 ?body', () => {
   assert.equal(smsHref('010-0000-0001', '안녕 하세요'), 'sms:01000000001?body=%EC%95%88%EB%85%95%20%ED%95%98%EC%84%B8%EC%9A%94');
   assert.ok(smsHref('01000000001', 'a', { ios: true }).startsWith('sms:01000000001&body='));
-});
-
-test('문자 문구: 가능 — 필요자금·LH 기한·일시납·분할납부·신청시기', () => {
-  const m = consultMessage({
-    동: '301', 호: '1503', 필요자금: 105_000_000, lh대상: true, lh신청기한: '10/21(수)까지 LH검증신청서 제출',
-    기금승계: 75_000_000, 일시납후: 30_000_000, 분할납부시필요액: 30_000_000, 잔금유예금: 75_000_000, 만기일: '2036-03-31',
-    신청시기: [{ 과목: '기금대출', 일전: 30 }],
-  });
-  assert.ok(m.includes('301동 1503호'));
-  assert.ok(m.includes('필요자금: 1억 500만원'));
-  assert.ok(m.includes('10/21(수)까지'));
-  assert.ok(m.includes('기금대출 승계 7,500만원 후 3,000만원'));
-  assert.ok(m.includes('2036-03-31'));
-  assert.ok(m.includes('기금 30일 전'));
-});
-
-test('문자 문구: 불가 — 사유만, 금액 안내 없음', () => {
-  const m = consultMessage({ 동: '301', 호: '101', 불가: true, 불가사유: ['자산가액 기준 초과'], 필요자금: 1 });
-  assert.ok(m.includes('대상이 아닙니다'));
-  assert.ok(m.includes('자산가액 기준 초과'));
-  assert.ok(!m.includes('필요자금'));
 });
 
 test('저소득층 불가: 요건 하나라도 초과면 불가, 국가유공자·입력 부족은 불가 아님', () => {

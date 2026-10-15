@@ -15,11 +15,12 @@
 import { el, replace, select } from './dom.js';
 import { formatKRW } from '../core/money.js';
 import {
-  STATUS, fromRows, search, bySlot, totals, maskPhone, formatPhone, toCsv, smsHref, consultMessage,
+  STATUS, fromRows, search, bySlot, totals, maskPhone, formatPhone, toCsv, smsHref,
 } from '../core/reservations.js';
+import { formValues, formCalc, encodeNotice, noticeMessage, VALUE_PATHS } from '../core/sangdamilji.js';
+import { renderForm, refreshForm } from './sangdamilji.js';
 import { readSheetFile } from '../io/sheet-reader.js';
 import * as resStore from '../io/reservation-store.js';
-import { lh불가 } from './quick.js';
 
 const nowText = () => {
   const d = new Date();
@@ -293,50 +294,67 @@ export function createSite({ ios = false, onRender, onStart, onFinish }) {
     ]);
   }
 
-  function messageFor(result, ctx) {
+  /* ── 상담일지 (종이 양식과 같은 화면) ── */
+  const today = () => nowText().slice(0, 10);
+
+  function formParts(store, ctx) {
     const x = current();
-    const c = result.conversion;
+    const form = ctx.policies?.sangdamilji;
     const rules = ctx.policies?.bunyangjeonhwan ?? {};
-    const 불가 = Boolean(c && lh불가(c.lh));
-    const sp = result.limit?.selectedProduct;
-    const 기금 = c && sp?.productId === 'gigeum-seunggye' ? Math.min(result.limit.finalAmount, c.일시납필요액) : 0;
-    return consultMessage({
-      동: x.동, 호: x.호, 불가,
-      불가사유: 불가 ? c.lh.실패.map((k) => `${k.label.replace(/\s*\(.*\)/, '')} 기준 초과`) : [],
-      lh대상: c?.lh?.pass ? true : 불가 ? false : null,
-      lh신청기한: rules.LH검증?.신청기한표기,
-      필요자금: c?.funds?.필요자금 ?? 0,
-      기금승계: 기금,
-      일시납후: c ? Math.max(0, c.일시납필요액 - 기금) : 0,
-      분할납부시필요액: c?.분할납부시필요액,
-      잔금유예금: c?.balance?.잔금유예금,
-      만기일: c?.interest?.만기일,
-      신청시기: rules.신청시기?.표,
-    });
+    const values = formValues(store.get());
+    const who = { 동: x?.동, 호: x?.호, 날짜: today() };
+    return { x, form, rules, values, who, calc: form ? formCalc(values, form, rules, who) : null };
   }
 
-  function finishCard(result, ctx) {
+  function formArea(store, ctx) {
+    const { form, values, calc, who } = formParts(store, ctx);
+    if (!form) return [el('div.callout.warn', { text: '상담일지 양식 파일(sangdamilji)이 없습니다. 메뉴 → 「분양전환 상담」 화면을 쓰십시오.' })];
+    return [renderForm({
+      form, values, calc, who, editable: true,
+      set: (key, v) => store.set(VALUE_PATHS[key], v),
+    })];
+  }
+
+  function refreshArea(root, store, ctx) {
+    const { calc, values } = formParts(store, ctx);
+    const f = root.querySelector('.f-form');
+    if (f && calc) refreshForm(f, calc, values);
+  }
+
+  function noticeUrl(store, ctx) {
+    const { x, values } = formParts(store, ctx);
+    const code = encodeNotice({ values, 동: x.동, 호: x.호, 날짜: today() });
+    return new URL(`notice.html#${code}`, document.baseURI).href;
+  }
+
+  function finishCard(store, ctx) {
     const x = current();
     if (!x) return null;
-    const c = result.conversion;
-    const 불가 = Boolean(c && lh불가(c.lh));
-    const auto = messageFor(result, ctx);
-    const text = site.msgDraft ?? auto;
+    const { calc } = formParts(store, ctx);
+    const 불가 = Boolean(calc?.불가);
+    const url = noticeUrl(store, ctx);
+    const auto = noticeMessage({ 동: x.동, 호: x.호, url });
+    // 상담사가 문구를 고쳤어도 링크(양식 값)는 늘 최신으로 바꿔 끼운다.
+    const text = site.msgDraft != null ? site.msgDraft.replace(/https?:\/\/\S*notice\.html#\S*/, url) : auto;
     const sms = el('a.btn.primary', {
       href: smsHref(x.phone, text, { ios }),
-      text: '문자 보내기 (문자 앱 열림)',
+      text: '안내장 문자 보내기',
       onClick: () => { setState(x.id, { smsAt: nowText() }); setTimeout(onRender, 0); },
     });
     const area = el('textarea.site-msg', {
-      rows: 11, 'aria-label': '문자 문구',
+      rows: 6, 'aria-label': '문자 문구',
       onInput: (e) => { site.msgDraft = e.target.value; sms.href = smsHref(x.phone, e.target.value, { ios }); },
     });
     area.value = text;
     const s = stateOf(x.id);
 
     return el('section.q-card', { id: 'site-finish' }, [
-      el('h2.q-h', { text: '⑦ 상담 종료 · 문자 발송' }),
-      el('p.tiny.faint', { text: `받는 사람 ${maskPhone(x.phone)} · 문구는 고쳐서 보낼 수 있습니다.` }),
+      el('h2.q-h', { text: '상담 종료 · 안내장 발송' }),
+      불가 ? el('div.q-verdict.bad', { text: '저소득층 분할납부 불가 — 상담일지에 「불가」로 표시됩니다' }) : null,
+      el('p.tiny', { text: `받는 사람 ${maskPhone(x.phone)} · 고객은 문자 속 링크를 누르면 지금 화면과 같은 상담일지(앞·뒷면)를 봅니다.` }),
+      el('div.res-actions', {}, [
+        el('a.btn.sm', { href: url, target: '_blank', rel: 'noopener', text: '안내장 미리보기 ↗' }),
+      ]),
       area,
       el('div.res-actions', {}, [
         sms,
@@ -349,22 +367,21 @@ export function createSite({ ios = false, onRender, onStart, onFinish }) {
         el('button.btn.primary', {
           type: 'button',
           text: 불가 ? '불가로 종료 · 다음 고객' : '상담 완료 · 다음 고객',
-          onClick: () => finish(불가 ? STATUS.불가 : STATUS.완료, result, area.value),
+          onClick: () => finish(불가 ? STATUS.불가 : STATUS.완료, calc, area.value),
         }),
-        !불가 ? el('button.btn.sm.danger', { type: 'button', text: '불가로 종료', onClick: () => finish(STATUS.불가, result, area.value) }) : null,
+        !불가 ? el('button.btn.sm.danger', { type: 'button', text: '불가로 종료', onClick: () => finish(STATUS.불가, calc, area.value) }) : null,
       ]),
     ]);
   }
 
-  function finish(status, result, message) {
+  function finish(status, calc, message) {
     const x = current();
     if (!x) return;
     const s = stateOf(x.id);
     if (!s.smsAt && !confirm('아직 문자 앱을 열지 않았습니다. 문자 없이 종료할까요?')) return;
-    const c = result.conversion;
     setState(x.id, {
       status, doneAt: nowText(),
-      결과: status === STATUS.불가 ? '불가' : c?.funds?.필요자금 ? `필요자금 ${formatKRW(c.funds.필요자금)}` : '완료',
+      결과: status === STATUS.불가 ? '불가' : calc?.필요자금 ? `필요자금 ${formatKRW(calc.필요자금)}` : '완료',
       message,
     });
     onFinish(x, status);
@@ -378,7 +395,7 @@ export function createSite({ ios = false, onRender, onStart, onFinish }) {
   return {
     get step() { return site.step; },
     get hasList() { return Boolean(site.data); },
-    current, listRail, board, customerCard, finishCard,
+    current, listRail, board, customerCard, finishCard, formArea, refreshArea,
   };
 }
 

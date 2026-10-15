@@ -13,10 +13,11 @@
 // SHELL 목록이나 소스가 바뀌면 이 번호를 올린다 — 낡은 프리캐시를 비우고 새로 담는다.
 // (평소에는 네트워크 우선이라 온라인 사용자는 항상 최신 파일을 받는다. 이 번호는
 //  오프라인용으로 미리 담아 둔 묶음을 갈아 끼우기 위한 것이다.)
-const VERSION = 'jl-loan-desk-v9';
+const VERSION = 'jl-loan-desk-v10';
 const SHELL = [
   './',
   './index.html',
+  './notice.html',
   './manifest.webmanifest',
   './assets/css/tokens.css',
   './assets/css/base.css',
@@ -26,6 +27,7 @@ const SHELL = [
   './assets/css/charts.css',
   './assets/css/mobile.css',
   './assets/css/quick.css',
+  './assets/css/form.css',
   './assets/css/print.css',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
@@ -51,6 +53,7 @@ const SHELL = [
   './src/core/narrative.js',
   './src/core/products.js',
   './src/core/reservations.js',
+  './src/core/sangdamilji.js',
   './src/core/record.js',
   './src/core/stress.js',
   './src/core/timeline.js',
@@ -63,6 +66,7 @@ const SHELL = [
   './src/io/sheet-reader.js',
   './src/io/reservation-store.js',
   './src/main.js',
+  './src/notice-main.js',
   './src/state/defaults.js',
   './src/state/derive.js',
   './src/state/store.js',
@@ -71,6 +75,7 @@ const SHELL = [
   './src/ui/policy-editor.js',
   './src/ui/quick.js',
   './src/ui/site.js',
+  './src/ui/sangdamilji.js',
   './src/ui/disclaimer.js',
   './src/ui/dom.js',
   './src/ui/fields.js',

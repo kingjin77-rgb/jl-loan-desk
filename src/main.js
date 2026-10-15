@@ -361,6 +361,7 @@ function renderQuick(result, keepRail) {
  */
 function renderSite(result, keepRail) {
   if (site.step === 'list') {
+    document.body.dataset.step = 'list';
     replace(shell.topbar, topbarChildren(result));
     replace(shell.banners, [quickStatus(), ui.bannerOpen ? banners() : null, installBar()].flat().filter(Boolean));
     replace(shell.summary, []);
@@ -370,14 +371,17 @@ function renderSite(result, keepRail) {
     replace(shell.tabbar, []);
     return;
   }
+  document.body.dataset.step = 'consult';
   if (!keepRail) {
     replace(shell.topbar, topbarChildren(result));
     replace(shell.banners, [quickStatus(), ui.bannerOpen ? banners() : null].flat().filter(Boolean));
-    replace(shell.rail, [site.customerCard(), ...quickInputs({ store, ui, onToggle: (id, d) => toggleCollapse(id, d) })]);
+    replace(shell.rail, [site.customerCard(), ...site.formArea(store, ctx)]);
+  } else {
+    site.refreshArea(shell.rail, store, ctx);
   }
-  replace(shell.summary, [quickSummary(result)].filter(Boolean));
-  replace(shell.results, [...quickResults(result, { ctx, onAdvanced: () => setMode('desk') }), site.finishCard(result, ctx)]);
-  replace(shell.printFooter, [printFooter(result)]);
+  replace(shell.summary, []);
+  replace(shell.results, [site.finishCard(store, ctx)]);
+  replace(shell.printFooter, []);
   replace(shell.tabbar, []);
 }
 

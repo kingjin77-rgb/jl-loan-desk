@@ -18,7 +18,7 @@ import { parseKRW, parsePct, formatNumber, formatKRW, parseManwon, toManwon } fr
  *  2) 입력 중 화면을 다시 그리면 포커스·커서·조합이 날아간다.
  *     window.__jlTyping 을 세워 두면 main.js 가 입력 영역을 건드리지 않는다.
  */
-function typingInput(props, onValue) {
+export function typingInput(props, onValue) {
   let composing = false;
   return el('input', {
     ...props,
