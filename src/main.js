@@ -22,13 +22,23 @@ import { productsPanel } from './ui/result-products.js';
 import { openComplexEditor } from './ui/complex-editor.js';
 import { openPolicyEditor } from './ui/policy-editor.js';
 import { quickInputs, quickResults, quickSummary } from './ui/quick.js';
+import { createSite } from './ui/site.js';
 import * as complexStore from './io/complex-store.js';
 import { expandYearMonth } from './core/dates.js';
 import { formatKRW } from './core/money.js';
 import { DISCLAIMER_SHORT, DISCLAIMER_FULL } from './ui/disclaimer.js';
 
+const MODES = ['site', 'quick', 'desk'];
 function readMode() {
-  try { return localStorage.getItem('jl-loan-desk.mode') === 'desk' ? 'desk' : 'quick'; } catch { return 'quick'; }
+  // 주소에 ?mode=site 처럼 붙이면 그 화면으로 연다 (현장 QR·바로가기용).
+  try {
+    const q = new URLSearchParams(location.search).get('mode');
+    if (MODES.includes(q)) return q;
+  } catch { /* 주소를 못 읽어도 기본값으로 */ }
+  try {
+    const v = localStorage.getItem('jl-loan-desk.mode');
+    return MODES.includes(v) ? v : 'site';
+  } catch { return 'site'; }
 }
 
 /**
@@ -56,7 +66,7 @@ function quickInput(input) {
 }
 
 const ui = {
-  // quick: 분양전환 상담 화면(현장용, 기본) / desk: 상세 계산 화면
+  // site: 현장 접수(예약자 체크 → 상담일지 → 문자, 기본) / quick: 분양전환 상담 / desk: 상세 계산
   mode: readMode(),
   monthlySchedule: false,
   bannerOpen: false,
@@ -165,6 +175,7 @@ let store = null;
 /** 단지에서 자동으로 채운 값들 — "되돌리기"의 원본 */
 let autoValues = {};
 let currentRecordId = null;
+let site = null;
 let myComplexes = [];
 
 function refreshMyComplexes() {
@@ -203,6 +214,32 @@ async function boot() {
   // 입력 위젯이 값만 바꾼 경우에는 입력 영역을 다시 그리지 않는다.
   // 다시 그리면 포커스·커서·한글 조합이 전부 날아간다.
   store.subscribe(() => render({ keepRail: Boolean(window.__jlTyping) }));
+  site = createSite({
+    ios: isIOS(),
+    onRender: () => render(),
+    onStart: (x) => {
+      // 새 고객 — 이전 고객의 입력을 지우고 상담일지를 비운다.
+      store.reset();
+      ctx.complexDoc = null;
+      autoValues = {};
+      currentRecordId = null;
+      store.set('consultation.clientAlias', `${x.동}-${x.호}`);
+      window.scrollTo(0, 0);
+    },
+    onFinish: () => {
+      // 상담일지를 이 기기의 상담기록에 남긴다(실패해도 현장 흐름은 멈추지 않는다).
+      try {
+        if (storage.isAvailable()) {
+          const input = siteInput(store.get());
+          const result = derive(input, ctx.policies, { products: ctx.products });
+          storage.save(toRecord({ ...input, recordId: currentRecordId }, result, { ...ctx, origins: store.origins }));
+        }
+      } catch { /* 기록 저장 실패는 체크 상태에 영향 없음 */ }
+      store.reset();
+      currentRecordId = null;
+      window.scrollTo(0, 0);
+    },
+  });
   mountShell();
   render();
 }
@@ -253,8 +290,10 @@ function mountShell() {
   ]);
 }
 
+const siteInput = (input) => quickInput(input);
+
 function render({ keepRail = false } = {}) {
-  const quick = ui.mode === 'quick';
+  const quick = ui.mode === 'quick' || ui.mode === 'site';
   const input = quick ? quickInput(store.get()) : store.get();
   let result;
   try {
@@ -274,7 +313,10 @@ function render({ keepRail = false } = {}) {
   // (규제 수치가 빠졌다는 사실은 한도 패널의 노란 띠가 알린다)
   const 한도있음 = !hasErrors || (onlyLimitBlocked && result.limit?.basis === '상품 기준');
 
-  document.body.dataset.mode = ui.mode;
+  // 현장 화면은 분양전환 상담 화면과 같은 배치를 쓴다.
+  document.body.dataset.mode = quick ? 'quick' : ui.mode;
+  document.body.dataset.view = ui.mode;
+  if (ui.mode === 'site') return renderSite(result, keepRail);
   if (quick) return renderQuick(result, keepRail);
 
   document.body.dataset.tab = ui.tab;
@@ -310,6 +352,31 @@ function renderQuick(result, keepRail) {
   }
   replace(shell.summary, [quickSummary(result)].filter(Boolean));
   replace(shell.results, quickResults(result, { ctx, onAdvanced: () => setMode('desk') }));
+  replace(shell.printFooter, [printFooter(result)]);
+  replace(shell.tabbar, []);
+}
+
+/**
+ * 현장 접수 화면. 명단 단계에서는 예약자 체크·현황판, 상담 단계에서는 상담일지 + 문자.
+ */
+function renderSite(result, keepRail) {
+  if (site.step === 'list') {
+    replace(shell.topbar, topbarChildren(result));
+    replace(shell.banners, [quickStatus(), ui.bannerOpen ? banners() : null, installBar()].flat().filter(Boolean));
+    replace(shell.summary, []);
+    replace(shell.rail, site.listRail());
+    replace(shell.results, site.board());
+    replace(shell.printFooter, []);
+    replace(shell.tabbar, []);
+    return;
+  }
+  if (!keepRail) {
+    replace(shell.topbar, topbarChildren(result));
+    replace(shell.banners, [quickStatus(), ui.bannerOpen ? banners() : null].flat().filter(Boolean));
+    replace(shell.rail, [site.customerCard(), ...quickInputs({ store, ui, onToggle: (id, d) => toggleCollapse(id, d) })]);
+  }
+  replace(shell.summary, [quickSummary(result)].filter(Boolean));
+  replace(shell.results, [...quickResults(result, { ctx, onAdvanced: () => setMode('desk') }), site.finishCard(result, ctx)]);
   replace(shell.printFooter, [printFooter(result)]);
   replace(shell.tabbar, []);
 }
@@ -406,9 +473,13 @@ function topbarChildren(result) {
       el('span', {}, ['JL 대출데스크 ', el('span.sub', { text: '법무법인 제이엘' })]),
     ]),
     el('div.spacer'),
-    ui.mode === 'quick'
-      ? el('button.btn.sm.mode-switch', { type: 'button', text: '상세 계산', onClick: () => setMode('desk') })
-      : el('button.btn.sm.mode-switch.primary', { type: 'button', text: '분양전환 상담', onClick: () => setMode('quick') }),
+    el('div.mode-tabs', { role: 'group', 'aria-label': '화면' }, [
+      ['site', '현장 접수'], ['quick', '분양전환 상담'], ['desk', '상세 계산'],
+    ].map(([m, label]) => el('button.btn.sm.mode-switch', {
+      type: 'button', text: label, 'aria-pressed': String(ui.mode === m),
+      class: ui.mode === m ? 'primary' : '',
+      onClick: () => setMode(m),
+    }))),
     el('button.btn.sm.tools-toggle', {
       type: 'button',
       text: ui.toolsOpen ? '닫기' : '메뉴',

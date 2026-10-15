@@ -269,4 +269,25 @@ if (isNode) {
     assert.equal(m.defaultProfile, '실무');
     assert.ok(m.profiles.실무.products.some((p) => /gigeum-seunggye/.test(p)));
   });
+
+  test('개인정보: data/ 와 테스트 명단에 실제 휴대폰 번호가 없다 (가짜 010-0000-xxxx 만 허용)', () => {
+    const ROOT = join(DATA, '..');
+    const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]);
+    const files = [...walk(DATA), ...walk(join(ROOT, 'test', 'fixtures'))].filter((f) => /\.(json|csv)$/.test(f));
+    for (const f of files) {
+      const text = readFileSync(f, 'utf8');
+      const hits = (text.match(/01[016789]-?\d{3,4}-?\d{4}/g) ?? []).filter((p) => !/^010-?0000-?\d{4}$/.test(p));
+      assert.deepEqual(hits, [], `${f} 에 휴대폰 번호 형태가 있습니다`);
+    }
+  });
+
+  test('분양전환(전주 상담일지): 청산일·LH 신청기한·대출 신청시기 표가 있다', () => {
+    const m = read('manifest.json');
+    const d = read(m.profiles[m.defaultProfile].policy.bunyangjeonhwan);
+    assert.match(d.잔금유예.청산일, /^\d{4}-\d{2}-\d{2}$/);
+    assert.ok(d.LH검증.신청기한표기);
+    assert.ok(d.신청시기.표.length >= 6);
+    for (const x of d.신청시기.표) assert.ok(x.과목 && x.일전 > 0);
+  });
 }

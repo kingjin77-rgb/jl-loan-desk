@@ -418,7 +418,7 @@ export function derive(input, policies, opts = {}) {
       원금: balance.잔금유예금,
       annualRate: 금리,
       계약일: conv.계약일,
-      청산일: conv.청산일,
+      청산일: conv.청산일 ?? rules?.잔금유예?.청산일 ?? null,
       만기년: rules?.잔금유예?.만기년 ?? 10,
       일부상환: conv.일부상환 ?? [],
       일수기준: rules?.잔금유예?.이자?.일수기준 ?? 365,

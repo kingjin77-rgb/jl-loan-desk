@@ -18,6 +18,9 @@ import { moneyField, segField, checkbox, intField } from './fields.js';
 import { formatKRW, formatPct } from '../core/money.js';
 import { OPTIONS } from '../state/defaults.js';
 import { amortize, METHODS } from '../core/amortize.js';
+import { lh불가 } from '../core/lh-gate.js';
+
+export { lh불가 };
 
 /* ───────────────────────── 입력 ───────────────────────── */
 
@@ -97,6 +100,21 @@ export function quickResults(r, { ctx, onAdvanced }) {
   // ② LH 검증
   out.push(lhCard(c.lh));
 
+  // 저소득층(LH 검증) 요건을 하나라도 넘으면 그 자리에서 「불가」 — 뒤의 납부·대출 안내는 의미가 없다.
+  if (lh불가(c.lh)) {
+    out.push(card('q-gate', '판정', [
+      el('div.q-verdict.bad.q-gate', { text: '불가 — 저소득층(LH 검증) 요건 미충족' }),
+      el('p', { text: c.lh.실패.map((x) => `${x.label} ${formatKRW(x.초과액)} 초과`).join(' · ') }),
+      el('p.tiny.faint', { text: '국가유공자 자격으로 공급받은 세대라면 「LH 검증 · 자산」에서 국가유공자를 체크하세요.' }),
+    ]));
+    out.push(el('div.q-foot', {}, [
+      el('p.tiny.faint', { text: footSources(ctx, r) }),
+      el('button.btn', { type: 'button', text: '상세 계산 보기 ▸', onClick: onAdvanced }),
+    ]));
+    return out;
+  }
+
+
   // ③ 납부 방법 — 일시납 / 분할납부
   if (입력됨) out.push(payCard(r, c));
 
@@ -105,6 +123,9 @@ export function quickResults(r, { ctx, onAdvanced }) {
 
   // ⑤ 분할납부 시 전세자금대출 경로
   if (입력됨) out.push(jeonseCard(r, ctx));
+
+  // ⑥ 대출 신청시기 (상담일지 표)
+  if (ctx.policies?.bunyangjeonhwan?.신청시기) out.push(scheduleCard(ctx.policies.bunyangjeonhwan));
 
   // 확인할 것 (최소 잔금유예금, 2억 미달 등)
   const warns = [...(c.warnings ?? [])];
@@ -125,6 +146,12 @@ export function quickResults(r, { ctx, onAdvanced }) {
 /** 상단 고정 요약 — 고객이 제일 먼저 묻는 세 숫자. */
 export function quickSummary(r) {
   const c = r.conversion;
+  if (c && lh불가(c.lh)) {
+    return el('div.summary.q-summary', {}, [el('div.cell', {}, [
+      el('div.k', { text: '판정' }), el('div.v.bad', { text: '불가' }),
+      el('div.note', { text: '저소득층(LH 검증) 요건 미충족' }),
+    ])]);
+  }
   if (!c || !(c.funds.필요자금 > 0 || c.funds.내역[0].금액 > 0)) return null;
   const sp = r.limit?.selectedProduct;
   const 기금 = sp?.productId === 'gigeum-seunggye' ? Math.min(r.limit.finalAmount, c.일시납필요액) : 0;
@@ -253,6 +280,18 @@ function jeonseCard(r, ctx) {
       ? '버팀목은 소득 기준만 확인했습니다. 보증금·자산 요건은 취급은행에서 확인합니다.'
       : (경로.은행전세자금대출?.접수 ?? '지역 취급은행 또는 대출상담사 접수') + (경로.은행전세자금대출?.출장접수 ? ` · ${경로.은행전세자금대출.출장접수}` : '') }),
     el('p.tiny.faint', { text: '기존 보증금대출은 일시납·분할납부 계약 시 상환해야 합니다.' }),
+  ]);
+}
+
+function scheduleCard(rules) {
+  const t = rules.신청시기?.표 ?? [];
+  const lh = rules.LH검증 ?? {};
+  return card('q-schedule', '⑥ 신청 기한 · 대출 신청시기', [
+    lh.신청기한표기 ? el('div.q-kv', {}, [el('span', { text: 'LH 검증신청서' }), el('b', { text: lh.신청기한표기 })]) : null,
+    lh.자격검증일 ? el('div.q-kv', {}, [el('span', { text: '자격검증일' }), el('b', { text: lh.자격검증일 })]) : null,
+    rules.잔금유예?.청산일 ? el('div.q-kv', {}, [el('span', { text: '청산일' }), el('b', { text: rules.잔금유예.청산일 })]) : null,
+    t.length ? el('div.q-sched', {}, t.map((x) => el('div.q-kv', {}, [el('span', { text: x.과목 }), el('b', { text: `잔금 ${x.일전}일 전` })]))) : null,
+    el('p.tiny.faint', { text: '기존 보증금대출은 분할납부 계약 전 상환해야 합니다.' }),
   ]);
 }
 
