@@ -14,14 +14,17 @@ import { ceilTo } from '../src/core/money.js';
 import { flattenProducts } from '../src/core/products.js';
 import { derive } from '../src/state/derive.js';
 import { POLICIES, baseInput } from './fixtures/policies.js';
-import 상품 from '../data/products/gigeum-seunggye.2026-09-28.json' with { type: 'json' };
+// 2026-09-28 파일: 상담일지 역산값 2.8% — 엔진이 상담일지 6개 숫자를 재현하는지 보는 기준.
+import 구상품 from '../data/products/gigeum-seunggye.2026-09-28.json' with { type: 'json' };
+// 2026-10-15 파일: 상담사 확인 현재 금리 3.0% — 화면이 실제로 쓰는 파일.
+import 상품 from '../data/products/gigeum-seunggye.2026-10-15.json' with { type: 'json' };
 
 const 문서 = {
   '51·59': { 원금: 55_000_000, 거치중이자: 128_400, 거치1년: 311_400, 거치3년: 339_200 },
   '74·84': { 원금: 75_000_000, 거치중이자: 175_000, 거치1년: 424_600, 거치3년: 462_500 },
 };
 
-const variants = flattenProducts([상품]);
+const variants = flattenProducts([구상품]);
 const byType = (t) => variants.find((v) => v.eligibility.or[0].value.includes(t));
 
 for (const [group, 기대] of Object.entries(문서)) {
@@ -86,12 +89,37 @@ test('상담사가 다른 상품을 고르면 자동 제안은 끼어들지 않�
   assert.equal(r.limit.selectedProduct, null);
 });
 
-test('거치 3년을 고르면 3년거치 상환액으로 갚는다 (상담일지 462,500)', () => {
+test('거치 3년을 고르면 3년거치 상환액으로 갚는다 (현재 3.0% → 469,781원)', () => {
   const i = 입력();
   i.product.graceMonths = 36;
   const r = derive(i, POLICIES, { products: [상품] });
   assert.equal(r.paymentRate.graceMonths, 36);
-  assert.equal(ceilTo(r.payment.maxPaymentAfterGrace ?? r.payment.monthlyPayment, 100), 462_500);
+  assert.equal(Math.round(r.payment.maxPaymentAfterGrace ?? r.payment.monthlyPayment), 469_781);
+});
+
+/**
+ * ★ 현재 금리 3.0% (2026-10-15 상담사 확인).
+ * 기대값은 엔진과 별개로 원리금균등 공식 P·r·(1+r)^n / ((1+r)^n − 1) 으로 계산했다.
+ */
+const 현재 = {
+  '51·59': { 원금: 55_000_000, 거치중이자: 137_500, 거치1년: 316_768, 거치3년: 344_506 },
+  '74·84': { 원금: 75_000_000, 거치중이자: 187_500, 거치1년: 431_956, 거치3년: 469_781 },
+};
+for (const [group, 기대] of Object.entries(현재)) {
+  test(`★ 현재 금리 3.0% · ${group}타입: 거치중 이자 · 1년거치 · 3년거치`, () => {
+    const v = flattenProducts([상품]).find((x) => x.eligibility.or[0].value.includes(group.split('·')[0]));
+    assert.equal(v.rateTable.matrix[0][0], 0.03, '현재 파일의 금리는 3.0% 여야 한다');
+    assert.equal(v.limit.max, 기대.원금);
+    for (const [months, key] of [[12, '거치1년'], [36, '거치3년']]) {
+      const r = amortize({ principal: 기대.원금, annualRate: 0.03, termMonths: 240, graceMonths: months, method: METHODS.EQUAL_TOTAL });
+      assert.equal(Math.round(r.firstPayment), 기대.거치중이자);
+      assert.equal(Math.round(r.maxPaymentAfterGrace ?? r.monthlyPayment), 기대[key], `${group} ${key}`);
+    }
+  });
+}
+
+test('구 파일(2.8%)은 지우지 않는다 — 과거 상담기록 재현용', () => {
+  assert.equal(flattenProducts([구상품])[0].rateTable.matrix[0][0], 0.028);
 });
 
 test('거치를 엉뚱하게 넣으면(24개월) 상품 선택지의 첫 값으로 돌아간다', () => {
